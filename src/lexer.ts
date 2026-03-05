@@ -8,7 +8,7 @@ class Lexer {
   constructor(source: string) {
     this.source = source;
     this.pos = 0;
-    this.line = 1;
+    this.line = 0;
   }
 
   lookahead(): string {
@@ -21,7 +21,7 @@ class Lexer {
     while (this.pos < this.source.length) {
       const char = this.lookahead();
 
-      // We use semicolons as end of line markers
+      // We use semicolons as end of statement markers
       if (char === ';') {
         tokens.push({ type: TokenType.SEMICOLON, value: ';', line: this.line });
         this.pos++;

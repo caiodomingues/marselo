@@ -4,6 +4,7 @@ export type Expression =
   | BooleanLiteral
   | Identifier
   | BinaryExpression
+  | AssignmentExpression
   | CallExpression;
 
 export type Statement =
@@ -50,6 +51,14 @@ export interface VariableDeclaration {
   type: 'VariableDeclaration';
   name: string;                     // The variable name
   value: Expression;                // The expression that initializes the variable
+}
+
+// This is for assignment expressions, e.g., x = 10 + 5; or x = y > 3, which is different from variable declaration because it doesn't declare a new variable,
+// it just assigns a value to an existing variable, useful in for loops, e.g., i = i + 1;
+export interface AssignmentExpression {
+  type: 'AssignmentExpression';
+  name: string;                     // The variable name being assigned to
+  value: Expression;                // The expression that is being assigned to the variable
 }
 
 // Function calls, e.g., print("maior")

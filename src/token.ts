@@ -14,7 +14,6 @@ export enum TokenType {
   LESS_THAN = 'LESS_THAN',            // <
   GREATER_EQUAL = 'GREATER_EQUAL',    // >=
   LESS_EQUAL = 'LESS_EQUAL',          // <=
-  QUOTE = 'QUOTE',                    // "
   IDENTIFIER = 'IDENTIFIER',          // variable names, function names, etc.
   NUMBER = 'NUMBER',                  // numeric literals
   STRING = 'STRING',                  // string literals
@@ -28,7 +27,6 @@ export enum TokenType {
   ASTERISK = 'ASTERISK',              // *
   SLASH = 'SLASH',                    // /
   VAR = 'VAR',                        // var keyword for variable declarations
-  PRINT = 'PRINT',                    // print keyword for output
   RETURN = 'RETURN',                  // return keyword for returning values from functions
   TRUE = 'TRUE',                      // true boolean literal
   FALSE = 'FALSE',                    // false boolean literal
@@ -38,7 +36,7 @@ export enum TokenType {
 export interface Token {
   type: TokenType;
   value: string;
-  line: number;
+  line: number; // line number for error reporting and debugging
 }
 
 export const KEYWORDS: Record<string, TokenType> = {
@@ -48,7 +46,6 @@ export const KEYWORDS: Record<string, TokenType> = {
   'while': TokenType.WHILE,
   'fn': TokenType.FN,
   'var': TokenType.VAR,
-  'print': TokenType.PRINT,
   'return': TokenType.RETURN,
   'true': TokenType.TRUE,
   'false': TokenType.FALSE,

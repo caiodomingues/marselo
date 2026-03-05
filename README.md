@@ -12,7 +12,7 @@ Creating a programming language sounds fun and challenging, so I decided to try 
 ## Pipeline
 
 ```plaintext
-Source Code -> Lexer (Tokenizer) -> Parser (AST) -> Semantic Analysis -> Analyzer
+Source Code -> Lexer (Tokenizer) -> Parser (AST) -> Semantic Analyzer -> Interpreter/Compiler/Evaluator (idk)
 ```
 
 ## Characteristics
@@ -24,6 +24,9 @@ Initially:
 - Variable declarations (`let x = 10`)
 - Conditional statements (`if`, `else`)
 - Functions (`fn add(a, b) { return a + b; }`)
+- Loops (`while`, `for`)
+- Basic data types (numbers, strings, booleans)
+- Explicit end of statements with `;`
 - Printing
 
 ### Why in Typescript?

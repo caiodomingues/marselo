@@ -88,6 +88,159 @@ class Parser {
     };
   }
 
+  // Structure: FN   IDENTIFIER   LEFT_PAREN   [parameters - optional]   RIGHT_PAREN   LEFT_BRACE   body   RIGHT_BRACE
+  parseFunctionDeclaration(): Statement {
+    this.expect(TokenType.FN);
+    const nameToken = this.expect(TokenType.IDENTIFIER);
+    this.expect(TokenType.LEFT_PAREN);
+    const parameters: string[] = [];
+
+    if (this.peek().type !== TokenType.RIGHT_PAREN) {
+      do {
+        const paramToken = this.expect(TokenType.IDENTIFIER);
+        parameters.push(paramToken.value);
+      } while (this.peek().type === TokenType.COMMA && this.consume());
+    }
+
+    this.expect(TokenType.RIGHT_PAREN);
+    const body = this.parseBlock();
+    return {
+      type: 'FunctionDeclaration',
+      name: nameToken.value,
+      parameters,
+      body
+    }
+  }
+
+  // Structure: IDENTIFIER   LEFT_PAREN   [arguments - optional]   RIGHT_PAREN
+  parseCallExpression(functionName: string): Expression {
+    this.expect(TokenType.LEFT_PAREN);
+    const args: Expression[] = [];
+
+    // Parse arguments if the next token isn't a R parenthesis. This allows for both `fn()` and `fn(arg1, arg2)`
+    if (this.peek().type !== TokenType.RIGHT_PAREN) {
+      do {
+        args.push(this.parseExpression());
+      } while (this.peek().type === TokenType.COMMA && this.consume());
+    }
+
+    this.expect(TokenType.RIGHT_PAREN);
+    return {
+      type: 'CallExpression',
+      name: functionName,
+      arguments: args
+    };
+  }
+
+  // Structure: IF   LEFT_PAREN   condition   RIGHT_PAREN   [ELSE - optional]   else
+  parseIfStatement(): Statement {
+    let elseBranch: Statement[] | undefined = undefined;
+
+    this.expect(TokenType.IF);
+    this.expect(TokenType.LEFT_PAREN);
+    const condition = this.parseExpression();
+    this.expect(TokenType.RIGHT_PAREN);
+
+    // Then branch = the block following the if condition
+    const thenBranch = this.parseBlock();
+
+    // Else branch = the block following the else keyword, if it exists
+    if (this.peek().type === TokenType.ELSE) {
+      this.expect(TokenType.ELSE);
+      elseBranch = this.parseBlock();
+    }
+
+    return {
+      type: 'IfStatement',
+      condition,
+      then: thenBranch,
+      else: elseBranch
+    };
+  }
+
+  // Structure: WHILE   LEFT_PAREN   condition   RIGHT_PAREN   body
+  parseWhileStatement(): Statement {
+    let condition: Expression;
+
+    this.expect(TokenType.WHILE);
+    this.expect(TokenType.LEFT_PAREN);
+    condition = this.parseExpression();
+    this.expect(TokenType.RIGHT_PAREN);
+    const body = this.parseBlock();
+
+    return {
+      type: 'WhileStatement',
+      condition,
+      body
+    };
+  }
+
+  // Structure: FOR   LEFT_PAREN   [initializer]   SEMICOLON   [condition]   SEMICOLON   [increment]   RIGHT_PAREN   body
+  parseForStatement(): Statement {
+    let initializer: Statement | undefined = undefined;
+    let condition: Expression | undefined = undefined;
+    let increment: Statement | undefined = undefined;
+
+    this.expect(TokenType.FOR);
+    this.expect(TokenType.LEFT_PAREN);
+
+    // Parse initializer if it's not a semicolon. This allows for both `for (var i = 0; i < 10; i++)` and `for (; i < 10; i++)`
+    if (this.peek().type !== TokenType.SEMICOLON) {
+      initializer = this.parseStatement();
+      this.expect(TokenType.SEMICOLON);
+    } else {
+      this.expect(TokenType.SEMICOLON);
+    }
+
+    // Parse condition if it's not a semicolon. This allows for both `for (var i = 0; i < 10; i++)` and `for (var i = 0;; i++)`
+    if (this.peek().type !== TokenType.SEMICOLON) {
+      condition = this.parseExpression();
+    } else {
+      this.expect(TokenType.SEMICOLON);
+    }
+    // Parse increment if it's not a right parenthesis. This allows for both `for (var i = 0; i < 10; i++)` and `for (var i = 0; i < 10;)`
+    if (this.peek().type !== TokenType.RIGHT_PAREN) {
+      increment = this.parseStatement();
+    }
+
+    this.expect(TokenType.RIGHT_PAREN);
+    const body = this.parseBlock();
+
+    return {
+      type: 'ForStatement',
+      initializer: initializer!,
+      condition: condition!,
+      increment: increment!,
+      body
+    }
+  }
+
+  // Structure: RETURN [expression - optional] SEMICOLON
+  parseReturnStatement(): Statement {
+    let value: Expression | undefined = undefined;
+
+    this.expect(TokenType.RETURN);
+    // If the next token is not a semicolon, we expect an expression
+    if (this.peek().type !== TokenType.SEMICOLON) {
+      value = this.parseExpression();
+    }
+    this.expect(TokenType.SEMICOLON);
+    return {
+      type: 'ReturnStatement',
+      value
+    };
+  }
+
+  // Expression statement is just an expression followed by a semicolon, e.g., `print(x);` or `x + 5;`
+  parseExpressionStatement(): Statement {
+    const expression = this.parseExpression();
+    this.expect(TokenType.SEMICOLON);
+    return {
+      type: 'ExpressionStatement',
+      expression
+    };
+  }
+
   // Pratt parser
   parseExpression(precedence: number = 0): Expression {
     // First we parse left-hand side (could be a literal, identifier, or parenthesized expression)
@@ -121,31 +274,58 @@ class Parser {
     const token = this.peek();
 
     switch (token.type) {
-      case TokenType.NUMBER:
+      case TokenType.NUMBER: {
         this.consume();
         return { type: 'NumberLiteral', value: Number(token.value) };
-      case TokenType.STRING:
+      }
+      case TokenType.STRING: {
         this.consume();
         return { type: 'StringLiteral', value: token.value };
+      }
       case TokenType.TRUE:
       case TokenType.FALSE:
         this.consume();
         return { type: 'BooleanLiteral', value: token.type === TokenType.TRUE };
-      case TokenType.IDENTIFIER:
+      case TokenType.IDENTIFIER: {
         this.consume();
         // Function call if the next token is a left parenthesis
         if (this.peek().type === TokenType.LEFT_PAREN) {
           return this.parseCallExpression(token.value);
         }
+
+        // Otherwise, it's just a variable reference
+        if (this.peek().type === TokenType.ASSIGN) {
+          this.consume(); // consume the =
+          const value = this.parseExpression();
+          return { type: 'AssignmentExpression', name: token.value, value };
+        }
+
         return { type: 'Identifier', name: token.value };
+      }
       // Parenthesized expression, e.g., (10 + 5) or (x > 3)
-      case TokenType.LEFT_PAREN:
+      case TokenType.LEFT_PAREN: {
         this.consume();
         const expr = this.parseExpression();
         this.expect(TokenType.RIGHT_PAREN);
         return expr;
+      }
       default:
         throw new Error(`Unexpected token ${token.type} at line ${token.line}`);
     }
   }
+
+  // Parse a block of statements enclosed in braces: for() {...}, if() {...} else {...}, while() {...}, fn() {...}
+  parseBlock(): Statement[] {
+    this.expect(TokenType.LEFT_BRACE);
+    const body: Statement[] = [];
+
+    while (this.peek().type !== TokenType.RIGHT_BRACE) {
+      body.push(this.parseStatement());
+    }
+
+    this.expect(TokenType.RIGHT_BRACE);
+    return body;
+  }
 }
+
+export default Parser;
