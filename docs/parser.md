@@ -27,6 +27,46 @@ Lendo a estrutura de uma árvore, agora sabemos que `5 * 2` deve ser avaliado an
 - Lexer resolve quais são as palavras
 - Parser resolve a estrutura gramatical (lógica) do programa
 
+### Statements e Expressions
+
+Uma `Expression` é tudo que produz um valor, qualquer coisa que você pode colocar no lado direito de um `=` ou dentro de um `print` é uma expressão:
+
+```plaintext
+42                    -> 42
+"olá"                 -> "olá"
+10 + 5                -> 15
+x                     -> valor de x
+soma(1, 2)            -> retorno da função
+x = 10                -> 10 (além de efeito colateral de atribuição)  
+```
+
+Um `Statement` é tudo que faz alguma coisa, mas não produz valor:
+
+```plaintext
+var x = 10;           -> declaração de variável (não tem valor)
+if (x > 3) { ... }    -> executa um bloco (não tem valor)
+while(...) { ... }    -> repete um bloco (não tem valor)
+return x;             -> sinaliza retorno (não tem valor)
+```
+
+Pra facilitar a visualização:
+
+```plaintext
+print(10 + 5)         -> expression
+print(x = 10)         -> expression (atribuição retorna o valor)
+print(var x = 10)     -> statement (nem faz sentido)
+print(if ...)         -> statement 
+```
+
+#### Porque AssignmentExpression não é Statement?
+
+Porque `x = 10` produz `10`, isso permite encadeamento:
+
+```plaintext
+var a = var b = 10    -> não funciona com statement
+var a = b = 10        -> funciona com expression
+```
+
 ## Pratt Parsing
 
 Esse algoritmo é bem mais profundo do que o explicado abaixo, mas a ideia básica é:

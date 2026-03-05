@@ -2,31 +2,22 @@ import Interpreter from './interpreter';
 import Lexer from './lexer';
 import Parser from './parser';
 
-const source = `
-var criarContador = fn() {
-  var total = 0;
-  var incrementar = fn() {
-    total = total + 1;
-    return total;
-  };
-  return incrementar;
-};
+const testingSource = `
+fn soma(arr) {
+  return arr[0] + arr[1];
+}
 
-var contadorA = criarContador();
-var contadorB = criarContador();
-print(contadorA());
-print(contadorA());
-print(contadorB());
-print(contadorA());
+var nums = [5, 7];
+print(soma(nums));
 `
 
-const lexer = new Lexer(source);
+const lexer = new Lexer(testingSource);
 const tokens = lexer.tokenize();
-console.log(tokens);
+// console.log(tokens);
 
 const parser = new Parser(tokens);
 const ast = parser.parse();
-console.log(JSON.stringify(ast, null, 2));
+// console.log(JSON.stringify(ast, null, 2));
 
 const interpreter = new Interpreter();
 interpreter.run(ast);

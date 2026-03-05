@@ -249,6 +249,24 @@ class Parser {
     // First we parse left-hand side (could be a literal, identifier, or parenthesized expression)
     let left = this.parsePrimary();
 
+    // Max precedence, so we resolve then before any binary operator.
+    // This allows for expressions like `arr[0] + 5` or `arr[0] = 10` to be parsed correctly, where the array access has higher precedence than the addition or assignment.
+
+    // Treats array access and assignment by index
+    while (this.peek().type === TokenType.LEFT_BRACKET) {
+      this.consume();
+      const index = this.parseExpression();
+      this.expect(TokenType.RIGHT_BRACKET);
+
+      if (this.peek().type === TokenType.ASSIGN) {
+        this.consume();
+        const value = this.parseExpression();
+        left = { type: 'IndexAssignment', object: left, index, value };
+      } else {
+        left = { type: 'IndexExpression', object: left, index };
+      }
+    }
+
     // While the next operator has higher precedence, we consume it and parse the right-hand side
     while (
       this.PRECEDENCE[this.peek().type] !== undefined &&
@@ -342,6 +360,21 @@ class Parser {
           parameters,
           body
         };
+      }
+
+      // Array literal
+      case TokenType.LEFT_BRACKET: {
+        this.consume();
+        const elements: Expression[] = [];
+
+        if (this.peek().type !== TokenType.RIGHT_BRACKET) {
+          do {
+            elements.push(this.parseExpression());
+          } while (this.peek().type === TokenType.COMMA && this.consume());
+        }
+
+        this.expect(TokenType.RIGHT_BRACKET);
+        return { type: 'ArrayLiteral', elements };
       }
 
       default:

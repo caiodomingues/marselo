@@ -7,7 +7,10 @@ export type Expression =
   | BinaryExpression
   | AssignmentExpression
   | FunctionExpression
-  | CallExpression;
+  | CallExpression
+  | IndexExpression
+  | IndexAssignment
+  | ArrayLiteral;
 
 export type Statement =
   | VariableDeclaration
@@ -113,15 +116,33 @@ export interface WhileStatement {
 // for ([initializer]; [condition]; [increment]) { [body] }
 export interface ForStatement {
   type: 'ForStatement';
-  initializer: Statement;          // The initialization statement (e.g., variable declaration)
-  condition: Expression;           // The condition expression for the loop
-  increment: Statement;            // The increment statement (e.g., variable update)
-  body: Statement[];               // The statements to execute in the loop body
+  initializer: Statement;           // The initialization statement (e.g., variable declaration)
+  condition: Expression;            // The condition expression for the loop
+  increment: Statement;             // The increment statement (e.g., variable update)
+  body: Statement[];                // The statements to execute in the loop body
 }
 
 export interface ReturnStatement {
   type: 'ReturnStatement';
-  value?: Expression;                // The expression to return (optional, it can be just 'return;' with no value)
+  value?: Expression;               // The expression to return (optional, it can be just 'return;' with no value)
+}
+
+export interface ArrayLiteral {
+  type: 'ArrayLiteral';
+  elements: Expression[];           // The elements of the array
+}
+
+export interface IndexExpression {
+  type: 'IndexExpression';
+  object: Expression;              // The array or object being indexed
+  index: Expression;               // The index expression
+}
+
+export interface IndexAssignment {
+  type: 'IndexAssignment';
+  object: Expression;              // The array or object being indexed
+  index: Expression;               // The index expression
+  value: Expression;               // The value being assigned to the indexed position
 }
 
 // Root node, every .mrs file is a Program

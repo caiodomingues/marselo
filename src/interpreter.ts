@@ -106,6 +106,42 @@ class Interpreter {
       case 'NullLiteral':
         return null;
 
+      case "ArrayLiteral": {
+        return node.elements.map(element => this.evaluate(element, scope));
+      }
+
+      case "IndexExpression": {
+        const object = this.evaluate(node.object, scope);
+        const index = this.evaluate(node.index, scope);
+
+        if (Array.isArray(object)) {
+          // Accept only number indexes for arrays, to prevent confusion with object property access
+          if (typeof index !== 'number') {
+            throw new Error(`Array index must be a number, got ${typeof index}`);
+          }
+          return object[index];
+        } else {
+          throw new Error(`Cannot index into type ${typeof object}`);
+        }
+      }
+
+      case "IndexAssignment": {
+        const object = this.evaluate(node.object, scope);
+        const index = this.evaluate(node.index, scope);
+        const value = this.evaluate(node.value, scope);
+
+        if (Array.isArray(object)) {
+          // Accept only number indexes for arrays, to prevent confusion with object property access
+          if (typeof index !== 'number') {
+            throw new Error(`Array index must be a number, got ${typeof index}`);
+          }
+          object[index] = value;
+          return value;
+        } else {
+          throw new Error(`Cannot index into type ${typeof object}`);
+        }
+      }
+
       case 'Identifier': {
         return scope.get(node.name);
       }
