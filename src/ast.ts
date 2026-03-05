@@ -5,6 +5,7 @@ export type Expression =
   | NullLiteral
   | Identifier
   | BinaryExpression
+  | UnaryExpression
   | AssignmentExpression
   | FunctionExpression
   | CallExpression
@@ -54,6 +55,13 @@ export interface BinaryExpression {
   operator: string;                 // e.g., '+', '-', '*', '/'
   left: Expression;                 // Left-hand side expression
   right: Expression;                // Right-hand side expression
+}
+
+// Add support for unary expressions like !true or -10
+export interface UnaryExpression {
+  type: 'UnaryExpression';
+  operator: string;                 // e.g., '!', '-'
+  argument: Expression;             // The expression the operator is applied to
 }
 
 export interface VariableDeclaration {

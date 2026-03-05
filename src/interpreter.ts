@@ -5,6 +5,10 @@ import Scope from "./scope";
 class Interpreter {
   private globalScope: Scope = new Scope();
 
+  constructor() {
+    this.registerNatives();
+  }
+
   run(program: Program): void {
     for (const statement of program.body) {
       this.execute(statement, this.globalScope);
@@ -200,6 +204,18 @@ class Interpreter {
         }
       }
 
+      case 'UnaryExpression': {
+        const argument = this.evaluate(node.argument, scope);
+        switch (node.operator) {
+          case '-':
+            return -argument;
+          case '!':
+            return !argument;
+          default:
+            throw new Error(`Unknown operator "${node.operator}"`);
+        }
+      }
+
       case 'AssignmentExpression': {
         const value = this.evaluate(node.value, scope);
         scope.assign(node.name, value);
@@ -207,12 +223,6 @@ class Interpreter {
       }
 
       case 'CallExpression': {
-        if (node.name === 'print') {
-          const args = node.arguments.map(arg => this.evaluate(arg, scope));
-          console.log(...args);
-          return;
-        }
-
         const func = scope.get(node.name);
         if (typeof func !== 'function') {
           throw new Error(`"${node.name}" is not a function`);
@@ -221,6 +231,64 @@ class Interpreter {
         return func(...args);
       }
     }
+  }
+
+  // Register native functions in the global scope
+  private registerNatives(): void {
+    // A simple print function to output messages from the interpreted code
+    this.globalScope.set('print', (...args: any[]) => {
+      console.log(...args);
+    });
+
+    // Return length of an array, throw an error if the argument is not an array
+    this.globalScope.set('len', (array: any[]) => {
+      if (!Array.isArray(array)) {
+        throw new Error(`len() expects an array, got ${typeof array}`);
+      }
+      return array.length;
+    });
+
+    // Push a value to an array, return the new length. Throw an error if the first argument is not an array
+    this.globalScope.set('push', (array: any[], value: any) => {
+      if (!Array.isArray(array)) {
+        throw new Error(`push() expects an array as the first argument, got ${typeof array}`);
+      }
+
+      array.push(value);
+      return array.length;
+    });
+
+    // Pop a value from an array, return the removed element. Throw an error if the argument is not an array
+    this.globalScope.set('pop', (array: any[]) => {
+      if (!Array.isArray(array)) {
+        throw new Error(`pop() expects an array, got ${typeof array}`);
+      }
+
+      return array.pop();
+    });
+
+    // A simple range function to generate an array of numbers from start to end (exclusive)
+    this.globalScope.set('range', (start: number, end: number) => {
+      if (typeof start !== 'number' || typeof end !== 'number') {
+        throw new Error(`range() expects two numbers, got ${typeof start} and ${typeof end}`);
+      }
+      const result = [];
+      for (let i = start; i < end; i++) {
+        result.push(i);
+      }
+      return result;
+    });
+
+    // A simple map function to apply a function to each element of an array and return a new array with the results
+    this.globalScope.set('map', (array: any[], func: (x: any) => any) => {
+      if (!Array.isArray(array)) {
+        throw new Error(`map() expects an array as the first argument, got ${typeof array}`);
+      }
+      if (typeof func !== 'function') {
+        throw new Error(`map() expects a function as the second argument, got ${typeof func}`);
+      }
+      return array.map(func);
+    });
   }
 }
 

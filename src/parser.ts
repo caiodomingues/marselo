@@ -310,6 +310,18 @@ class Parser {
         return { type: 'NullLiteral' };
       }
 
+      case TokenType.BANG: {
+        this.consume();
+        const argument = this.parsePrimary();
+        return { type: 'UnaryExpression', operator: '!', argument };
+      }
+
+      case TokenType.MINUS: {
+        this.consume();
+        const argument = this.parsePrimary();
+        return { type: 'UnaryExpression', operator: '-', argument };
+      }
+
       case TokenType.TRUE:
       case TokenType.FALSE:
         this.consume();

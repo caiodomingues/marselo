@@ -66,7 +66,8 @@ class Lexer {
           tokens.push({ type: TokenType.NOT_EQUALS, value: '!=', line: this.line });
           this.pos += 2;
         } else {
-          throw new Error(`Unexpected character '!' at line ${this.line}`);
+          tokens.push({ type: TokenType.BANG, value: '!', line: this.line });
+          this.pos++;
         }
         continue;
       }

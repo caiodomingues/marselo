@@ -25,6 +25,7 @@ export enum TokenType {
   FOR = 'FOR',                                      // for keyword
   WHILE = 'WHILE',                                  // while keyword
   FN = 'FN',                                        // fn keyword for function definitions
+  BANG = 'BANG',                                    // !
   PLUS = 'PLUS',                                    // +
   MINUS = 'MINUS',                                  // -
   ASTERISK = 'ASTERISK',                            // *

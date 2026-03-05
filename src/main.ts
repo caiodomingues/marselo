@@ -3,12 +3,10 @@ import Lexer from './lexer';
 import Parser from './parser';
 
 const testingSource = `
-fn soma(arr) {
-  return arr[0] + arr[1];
-}
-
-var nums = [5, 7];
-print(soma(nums));
+print(!true);
+print(!false);
+print(-10);
+print(-(5 + 3));
 `
 
 const lexer = new Lexer(testingSource);
