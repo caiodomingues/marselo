@@ -2,9 +2,11 @@ export type Expression =
   | NumberLiteral
   | StringLiteral
   | BooleanLiteral
+  | NullLiteral
   | Identifier
   | BinaryExpression
   | AssignmentExpression
+  | FunctionExpression
   | CallExpression;
 
 export type Statement =
@@ -32,6 +34,10 @@ export interface StringLiteral {
 export interface BooleanLiteral {
   type: 'BooleanLiteral';
   value: boolean;
+}
+
+export interface NullLiteral {
+  type: 'NullLiteral';
 }
 
 export interface Identifier {
@@ -79,6 +85,13 @@ export interface FunctionDeclaration {
   type: 'FunctionDeclaration';
   name: string;                     // The function name
   parameters: string[];             // The parameter names (there's no)
+  body: Statement[];                // The function body, which is an array of statements
+}
+
+// This allows us to have function expressions and closures, read (./docs/closures.md [pt-br])
+export interface FunctionExpression {
+  type: 'FunctionExpression';
+  parameters: string[];             // The parameter names
   body: Statement[];                // The function body, which is an array of statements
 }
 

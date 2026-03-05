@@ -8,7 +8,7 @@ class Lexer {
   constructor(source: string) {
     this.source = source;
     this.pos = 0;
-    this.line = 0;
+    this.line = 1;
   }
 
   lookahead(): string {
@@ -91,6 +91,37 @@ class Lexer {
           this.pos++;
         }
         continue;
+      }
+
+      if (char === '?') {
+        if (this.source[this.pos + 1] === '?') {
+          tokens.push({ type: TokenType.NULLISH_COALESCING, value: '??', line: this.line });
+          this.pos += 2;
+        } else {
+          // We can choose to allow single '?' as valid token if we want optional chaining or ternary operators, but for now we will throw an error for unexpected characters.
+          throw new Error(`Unexpected character '?' at line ${this.line}`);
+        }
+        continue;
+      }
+
+      if (char === '&') {
+        if (this.source[this.pos + 1] === '&') {
+          tokens.push({ type: TokenType.AND, value: '&&', line: this.line });
+          this.pos += 2;
+          continue;
+        } else {
+          throw new Error(`Unexpected character '&' at line ${this.line}`);
+        }
+      }
+
+      if (char === '|') {
+        if (this.source[this.pos + 1] === '|') {
+          tokens.push({ type: TokenType.OR, value: '||', line: this.line });
+          this.pos += 2;
+          continue;
+        } else {
+          throw new Error(`Unexpected character '|' at line ${this.line}`);
+        }
       }
 
       if (char === '+') {

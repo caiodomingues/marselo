@@ -27,6 +27,7 @@ Initially:
 - Loops (`while`, `for`)
 - Basic data types (numbers, strings, booleans)
 - Explicit end of statements with `;`
+- Closures :D
 - Printing
 
 ### Why in Typescript?

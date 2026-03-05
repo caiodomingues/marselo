@@ -3,12 +3,21 @@ import Lexer from './lexer';
 import Parser from './parser';
 
 const source = `
-fn soma(a, b) {
-  return a + b;
-}
+var criarContador = fn() {
+  var total = 0;
+  var incrementar = fn() {
+    total = total + 1;
+    return total;
+  };
+  return incrementar;
+};
 
-var resultado = soma(10, 5);
-print(resultado);
+var contadorA = criarContador();
+var contadorB = criarContador();
+print(contadorA());
+print(contadorA());
+print(contadorB());
+print(contadorA());
 `
 
 const lexer = new Lexer(source);

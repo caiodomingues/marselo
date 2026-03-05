@@ -6,16 +6,19 @@ class Parser {
   private pos: number;
 
   private PRECEDENCE: Partial<Record<TokenType, number>> = {
-    [TokenType.EQUALS]: 1,
-    [TokenType.NOT_EQUALS]: 1,
-    [TokenType.LESS_THAN]: 2,
-    [TokenType.GREATER_THAN]: 2,
-    [TokenType.GREATER_EQUAL]: 2,
-    [TokenType.LESS_EQUAL]: 2,
-    [TokenType.PLUS]: 3,
-    [TokenType.MINUS]: 3,
-    [TokenType.ASTERISK]: 4,
-    [TokenType.SLASH]: 4
+    [TokenType.NULLISH_COALESCING]: 1,
+    [TokenType.OR]: 2,
+    [TokenType.AND]: 3,
+    [TokenType.EQUALS]: 4,
+    [TokenType.NOT_EQUALS]: 4,
+    [TokenType.LESS_THAN]: 5,
+    [TokenType.GREATER_THAN]: 5,
+    [TokenType.GREATER_EQUAL]: 5,
+    [TokenType.LESS_EQUAL]: 5,
+    [TokenType.PLUS]: 6,
+    [TokenType.MINUS]: 6,
+    [TokenType.ASTERISK]: 7,
+    [TokenType.SLASH]: 7
   };
 
   constructor(tokens: Token[]) {
@@ -278,14 +281,22 @@ class Parser {
         this.consume();
         return { type: 'NumberLiteral', value: Number(token.value) };
       }
+
       case TokenType.STRING: {
         this.consume();
         return { type: 'StringLiteral', value: token.value };
       }
+
+      case TokenType.NULL: {
+        this.consume();
+        return { type: 'NullLiteral' };
+      }
+
       case TokenType.TRUE:
       case TokenType.FALSE:
         this.consume();
         return { type: 'BooleanLiteral', value: token.type === TokenType.TRUE };
+
       case TokenType.IDENTIFIER: {
         this.consume();
         // Function call if the next token is a left parenthesis
@@ -302,6 +313,7 @@ class Parser {
 
         return { type: 'Identifier', name: token.value };
       }
+
       // Parenthesized expression, e.g., (10 + 5) or (x > 3)
       case TokenType.LEFT_PAREN: {
         this.consume();
@@ -309,6 +321,29 @@ class Parser {
         this.expect(TokenType.RIGHT_PAREN);
         return expr;
       }
+
+      case TokenType.FN: {
+        this.consume();
+        this.expect(TokenType.LEFT_PAREN);
+        const parameters: string[] = [];
+
+        if (this.peek().type !== TokenType.RIGHT_PAREN) {
+          do {
+            const paramToken = this.expect(TokenType.IDENTIFIER);
+            parameters.push(paramToken.value);
+          } while (this.peek().type === TokenType.COMMA && this.consume());
+        }
+
+        this.expect(TokenType.RIGHT_PAREN);
+        const body = this.parseBlock();
+
+        return {
+          type: 'FunctionExpression',
+          parameters,
+          body
+        };
+      }
+
       default:
         throw new Error(`Unexpected token ${token.type} at line ${token.line}`);
     }

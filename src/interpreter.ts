@@ -11,7 +11,7 @@ class Interpreter {
     }
   }
 
-  execute(node: Statement, scope: Scope): void {
+  execute(node: Statement, scope: Scope): any {
     switch (node.type) {
       // Evaluate the variable declaration, store and return the value
       case 'VariableDeclaration': {
@@ -103,8 +103,30 @@ class Interpreter {
       case 'BooleanLiteral':
         return node.value;
 
+      case 'NullLiteral':
+        return null;
+
       case 'Identifier': {
         return scope.get(node.name);
+      }
+
+      case 'FunctionExpression': {
+        return (...args: any[]) => {
+          const funcScope = new Scope(scope);
+          node.parameters.forEach((param, index) => {
+            funcScope.set(param, args[index]);
+          });
+          try {
+            for (const statement of node.body) {
+              this.execute(statement, funcScope);
+            }
+          } catch (e) {
+            if (e instanceof ReturnSignal) {
+              return e.value;
+            }
+            throw e;
+          }
+        }
       }
 
       case 'BinaryExpression': {
@@ -131,6 +153,12 @@ class Interpreter {
             return left <= right;
           case '>=':
             return left >= right;
+          case '&&':
+            return Boolean(left) && Boolean(right);
+          case '||':
+            return Boolean(left) || Boolean(right);
+          case '??':
+            return left ?? right;
           default:
             throw new Error(`Unknown operator "${node.operator}"`);
         }
