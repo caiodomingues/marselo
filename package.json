@@ -1,0 +1,29 @@
+{
+  "name": "marselo",
+  "version": "1.0.0",
+  "description": "Creating a programming language sounds fun and challenging, so I decided to try it out. :D",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "ts-node src/main.ts",
+    "dev": "ts-node --watch src/main.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caiodomingues/marselo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/caiodomingues/marselo/issues"
+  },
+  "homepage": "https://github.com/caiodomingues/marselo#readme",
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
