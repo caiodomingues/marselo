@@ -289,6 +289,10 @@ class Interpreter {
       this.globalScope.set(name, fn);
     }
   }
+
+  registerNative(name: string, fn: (...args: any[]) => any): void {
+    this.globalScope.set(name, fn);
+  }
 }
 
 export default Interpreter;
