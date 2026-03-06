@@ -1,19 +1,23 @@
 import { Chunk, Instruction, OpCode } from "./opcode";
 import Scope from "./scope";
 
+interface CallFrame {
+  instructions: Instruction[];
+  ip: number;
+  scope: Scope;
+  returnValue?: any;
+}
+
 class VM {
   private stack: any[] = [];
-  private scope: Scope = new Scope();
-  private returnValue: any = undefined;
+  private callStack: CallFrame[] = [];
   private natives: Map<string, (...args: any[]) => any> = new Map();
 
   constructor(
     private instructions: Instruction[],
     private chunks: Map<string, Chunk>,
-    scope?: Scope
-  ) {
-    if (scope) this.scope = scope;
-  }
+    private initialScope?: Scope
+  ) { }
 
   private push(value: any): void {
     this.stack.push(value);
@@ -32,12 +36,27 @@ class VM {
     }
   }
 
-  run(): void {
-    let ip = 0; // instruction pointer
+  getResult(): any {
+    return this.stack.length > 0 ? this.stack[this.stack.length - 1] : undefined;
+  }
 
-    while (ip < this.instructions.length) {
-      const instruction = this.instructions[ip];
-      ip++; // move to the next instruction by default
+  run(): void {
+    this.callStack.push({
+      instructions: this.instructions,
+      ip: 0,
+      scope: this.initialScope ?? new Scope(),
+    })
+
+    while (this.callStack.length > 0) {
+      const frame = this.callStack[this.callStack.length - 1];
+
+      if (frame.ip >= frame.instructions.length) {
+        this.callStack.pop();
+        continue;
+      }
+
+      const instruction = frame.instructions[frame.ip];
+      frame.ip++;
 
       switch (instruction.op) {
         case OpCode.PUSH: {
@@ -51,27 +70,27 @@ class VM {
         }
 
         case OpCode.LOAD: {
-          this.push(this.scope.get(instruction.operand));
+          this.push(frame.scope.get(instruction.operand));
           break;
         }
 
         case OpCode.STORE: {
           const value = this.pop();
           try {
-            this.scope.assign(instruction.operand, value);
+            frame.scope.assign(instruction.operand, value);
           } catch {
-            this.scope.set(instruction.operand, value);
+            frame.scope.set(instruction.operand, value);
           }
           break;
         }
 
         case OpCode.JUMP: {
-          ip = instruction.operand;
+          frame.ip = instruction.operand;
           break;
         }
 
         case OpCode.JUMP_IF_FALSE: {
-          if (!this.pop()) ip = instruction.operand;
+          if (!this.pop()) frame.ip = instruction.operand;
           break;
         }
 
@@ -187,7 +206,7 @@ class VM {
           }
           this.push({
             ...instruction.operand,
-            capturedScope: this.scope
+            capturedScope: frame.scope
           });
           break;
         }
@@ -207,14 +226,14 @@ class VM {
             const wrappedArgs = args.map(arg => {
               if (arg && typeof arg === 'object' && arg.instructions) {
                 return (...innerArgs: any[]) => {
-                  const fnScope = new Scope(this.scope);
+                  const fnScope = new Scope(frame.scope);
                   arg.parameters.forEach((param: string, i: number) => {
                     fnScope.set(param, innerArgs[i]);
                   });
                   const vm = new VM(arg.instructions, arg.chunks ?? this.chunks, fnScope);
                   vm.registerNatives(Object.fromEntries(this.natives));
                   vm.run();
-                  return vm.returnValue;
+                  return vm.getResult();
                 };
               }
               return arg;
@@ -226,16 +245,11 @@ class VM {
           }
 
           // 2. FunctionExpression (anonymous function) - stored in the current scope
-          const variable = this.scope.tryGet(name);
-          if (variable && typeof variable === 'object' && variable.instructions) {
-            const fnScope = new Scope(variable.capturedScope ?? this.scope); // use captured scope for closures, or current scope if not available
-            variable.parameters.forEach((param: string, i: number) => {
-              fnScope.set(param, args[i]);
-            });
-            const vm = new VM(variable.instructions, variable.chunks ?? this.chunks, fnScope);
-            vm.registerNatives(Object.fromEntries(this.natives));
-            vm.run();
-            if (vm.returnValue !== undefined) this.push(vm.returnValue);
+          const variable = frame.scope.tryGet(name);
+          if (variable?.instructions) {
+            const fnScope = new Scope(variable.capturedScope ?? frame.scope);
+            variable.parameters.forEach((p: string, i: number) => fnScope.set(p, args[i]));
+            this.callStack.push({ instructions: variable.instructions, ip: 0, scope: fnScope });
             break;
           }
 
@@ -243,21 +257,19 @@ class VM {
           const chunk = this.chunks.get(name);
           if (!chunk) throw new Error(`Undefined function: ${name}`);
 
-          const fnScope = new Scope(this.scope);
-          chunk.parameters.forEach((param, i) => fnScope.set(param, args[i]));
-          const vm = new VM(chunk.instructions, this.chunks, fnScope);
-          vm.registerNatives(Object.fromEntries(this.natives));
-          vm.run();
-          if (vm.returnValue !== undefined) this.push(vm.returnValue);
+          const fnScope = new Scope(frame.scope);
+          chunk.parameters.forEach((p, i) => fnScope.set(p, args[i]));
+
+          this.callStack.push({ instructions: chunk.instructions, ip: 0, scope: fnScope });
 
           break;
         }
 
         case OpCode.RETURN: {
-          if (this.stack.length > 0) {
-            this.returnValue = this.pop();
-          }
-          return;
+          const returnValue = this.stack.length > 0 ? this.pop() : undefined;
+          this.callStack.pop();
+          if (returnValue !== undefined) this.push(returnValue);
+          break;
         }
 
         case OpCode.BUILD_ARRAY: {
