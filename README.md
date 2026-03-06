@@ -10,6 +10,18 @@ Creating a programming language sounds fun and challenging, so I decided to try 
 - You may find random PT-BR comments/code, because it's my native language and sometimes I write comments in Portuguese to express my thoughts more naturally. (But I'll try to keep it mostly in English for better readability)
 - Files use the `.mrs` extension.
 
+## What can I still improve/implement?
+
+- Tail call optimization (TCO) -> improves performance of recursive functions and prevents stack overflow
+- Bytecode Serialization -> allows saving compiled bytecode to disk and loading it later, improving startup time
+- REPL -> interactive shell for testing code snippets and exploring the language
+- Better error handling -> more informative error messages with line numbers and context
+- Try/catch -> exception handling for better error management
+- Standard library -> useful built-in functions and modules for common tasks
+
+> When will you implement these features?
+> Idk, maybe never? I'm just doing this for fun and learning, so no promises :D
+
 ## Pipeline
 
 ```plaintext
