@@ -10,7 +10,7 @@ class Compiler {
   private instructions: Instruction[] = [];
   private chunks: Map<string, Chunk> = new Map();
 
-  constructor(private baseDir: string = process.cwd()) {}
+  constructor(private baseDir: string = process.cwd()) { }
 
   private emit(op: OpCode, operand?: any): number {
     this.instructions.push({ op, operand });
@@ -74,10 +74,13 @@ class Compiler {
           funcCompiler.compileStatement(statement);
         }
 
+        const freeVars = this.findFreeVariables(node.body, node.parameters);
+
         this.emit(OpCode.PUSH_FN, {
           parameters: node.parameters,
           instructions: funcCompiler.getInstructions(),
           chunks: funcCompiler.getChunks(),
+          freeVars: freeVars,
         });
         break;
       }
@@ -288,6 +291,43 @@ class Compiler {
 
   getChunks(): Map<string, Chunk> {
     return this.chunks;
+  }
+
+  private findFreeVariables(
+    body: Statement[],
+    params: string[]
+  ): string[] {
+    const declared = new Set<string>(params);
+    const referenced = new Set<string>();
+
+    const scan = (node: any) => {
+      if (!node || typeof node !== 'object') return;
+
+      if (node.type === 'VariableDeclaration') {
+        declared.add(node.name);
+      }
+
+      if (node.type === 'Identifier') {
+        referenced.add(node.name);
+      }
+
+      if (node.type === 'AssignmentExpression') {
+        referenced.add(node.name);
+      }
+
+      // Recursively scan child nodes
+      for (const key of Object.keys(node)) {
+        if (key === 'type') continue;
+
+        const child = node[key];
+
+        if (Array.isArray(child)) child.forEach(scan);
+        else if (child && typeof child === 'object') scan(child);
+      }
+    };
+
+    body.forEach(scan);
+    return [...referenced].filter(name => !declared.has(name));
   }
 
   private getBinaryOpCode(operator: string): OpCode {

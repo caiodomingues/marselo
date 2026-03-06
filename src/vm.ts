@@ -5,7 +5,7 @@ interface CallFrame {
   instructions: Instruction[];
   ip: number;
   scope: Scope;
-  returnValue?: any;
+  upvalues?: Record<string, { get: () => any; set: (value: any) => void }>;
 }
 
 class VM {
@@ -70,16 +70,26 @@ class VM {
         }
 
         case OpCode.LOAD: {
-          this.push(frame.scope.get(instruction.operand));
+          const name = instruction.operand;
+          if (frame.upvalues?.[name]) {
+            this.push(frame.upvalues[name].get());
+          } else {
+            this.push(frame.scope.get(name));
+          }
           break;
         }
 
         case OpCode.STORE: {
+          const name = instruction.operand;
           const value = this.pop();
-          try {
-            frame.scope.assign(instruction.operand, value);
-          } catch {
-            frame.scope.set(instruction.operand, value);
+          if (frame.upvalues?.[name]) {
+            frame.upvalues[name].set(value);
+          } else {
+            try {
+              frame.scope.assign(name, value);
+            } catch {
+              frame.scope.set(name, value);
+            }
           }
           break;
         }
@@ -204,9 +214,20 @@ class VM {
               this.chunks.set(name, chunk);
             }
           }
+
+          // Capture upvalues (only free vars)
+          const upvalues: Record<string, { get: () => any; set: (value: any) => void }> = {};
+          for (const name of (instruction.operand.freeVars ?? [])) {
+            const capturedScope = frame.scope;
+            upvalues[name] = {
+              get: () => capturedScope.get(name),
+              set: (value) => capturedScope.assign(name, value)
+            }
+          }
+
           this.push({
             ...instruction.operand,
-            capturedScope: frame.scope
+            upvalues,
           });
           break;
         }
@@ -230,9 +251,11 @@ class VM {
                   arg.parameters.forEach((param: string, i: number) => {
                     fnScope.set(param, innerArgs[i]);
                   });
+
                   const vm = new VM(arg.instructions, arg.chunks ?? this.chunks, fnScope);
                   vm.registerNatives(Object.fromEntries(this.natives));
                   vm.run();
+
                   return vm.getResult();
                 };
               }
@@ -241,6 +264,7 @@ class VM {
 
             const result = native(...wrappedArgs);
             if (result !== undefined) this.push(result);
+
             break;
           }
 
@@ -248,8 +272,16 @@ class VM {
           const variable = frame.scope.tryGet(name);
           if (variable?.instructions) {
             const fnScope = new Scope(variable.capturedScope ?? frame.scope);
+
             variable.parameters.forEach((p: string, i: number) => fnScope.set(p, args[i]));
-            this.callStack.push({ instructions: variable.instructions, ip: 0, scope: fnScope });
+
+            this.callStack.push({
+              instructions: variable.instructions,
+              ip: 0,
+              scope: fnScope,
+              upvalues: variable.upvalues // Upvalues captured from PUSH_FN
+            });
+
             break;
           }
 
@@ -260,7 +292,11 @@ class VM {
           const fnScope = new Scope(frame.scope);
           chunk.parameters.forEach((p, i) => fnScope.set(p, args[i]));
 
-          this.callStack.push({ instructions: chunk.instructions, ip: 0, scope: fnScope });
+          this.callStack.push({
+            instructions: chunk.instructions,
+            ip: 0,
+            scope: fnScope,
+          });
 
           break;
         }

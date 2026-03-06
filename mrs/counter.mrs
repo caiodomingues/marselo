@@ -1,0 +1,17 @@
+// Testing closures and free variables in the counter example (upvalues)
+
+fn makeCounter() {
+  var count = 0;
+  return fn() {
+    count = count + 1;
+    return count;
+  };
+}
+
+var counter1 = makeCounter();
+print(counter1());
+print(counter1());
+
+var counter2 = makeCounter();
+print(counter2());
+print(counter1());
