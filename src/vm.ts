@@ -180,9 +180,14 @@ class VM {
         }
 
         case OpCode.PUSH_FN: {
+          if (instruction.operand.chunks) {
+            for (const [name, chunk] of instruction.operand.chunks) {
+              this.chunks.set(name, chunk);
+            }
+          }
           this.push({
             ...instruction.operand,
-            capturedScope: this.scope  // closure support: capture the current scope when the function is defined
+            capturedScope: this.scope
           });
           break;
         }
