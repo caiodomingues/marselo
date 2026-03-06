@@ -263,3 +263,87 @@ O interpreter atual continua funcionando, ambos os modos vão coexistir :D
 | Memória | AST em memória durante execução | Só as instruções |
 | Otimizações | Difícil | Muito mais fácil |
 | Portabilidade | Não | Bytecode pode ser salvo em disco |
+
+## Melhorando a implementação atual
+
+Chegamos em uma implementação funcional e sólida do bytecode e VM, mas fizemos as coisas de formas simples e precisamos otimizar alguns pontos:
+
+- As Closures usam `capturedScopes`, o correto seria usar **upvalues** (referências diretas às variáveis capturadas, em vez de copiar o escopo inteiro). É comum em VMs de linguagens dinâmicas, como Lua, para otimizar o acesso a variáveis em closures.
+- Estamos criando VMs filhas por chamda de função, não é o fim do mundo mas gera overhead. VMs reais usam uma call stack dentro da mesma VM, onde cada chamada de função cria um novo **frame** (quadro) na pilha de chamadas, em vez de criar uma nova VM. Isso é mais eficiente e é a abordagem padrão em VMs modernas.
+- Chunks não estão propagando para VMs filhas, então as funções declaradas dentro de funções não estão acessíveis em todos os contextos.
+
+### Call Stack
+
+Em vez de criar uma nova `VM` para cada chamada, a VM deve manter uma pilha de **frames**. Cada frame guarda o estado de uma chamada:
+
+```typescript
+interface CallFrame {
+  instructions: Instruction[];
+  chunks: Map<string, Chunk>;
+  scope: Scope;
+  ip: number;                   // posição atual NESSE frame
+  returnValue?: any;
+}
+```
+
+O `run()` vira um loop que processa o frame do topo da call stack, quando ele encontra um `OpCode.CALL`, empurra um novo frame, quando encontra um `OpCode.RETURN`, desempilha o frame e continua o anterior.
+
+> Meu Deus, vou ter que mudar boa parte da estrutura e do `run()` kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
+
+### Chunks globais
+
+É mais simples, em vez de cada VM ter seus próprios chunks, é só compartilhar um único mapa global:
+
+```typescript
+// Em vez de passar chunks no construtor de cada VM filha,
+// usa uma referência ao mapa global de chunks
+const vm = new VM(instructions, this.chunks, fnScope);
+//                              ^^^^ sempre o mesmo mapa
+```
+
+Já temos algo próximo, mas quando uma `FunctionExpression` tem chunks internos (`variables.chunks`), esses chunks não são mesclados no mapa global. A correção é mesclar na hora do `PUSH_FN`:
+
+```typescript
+case OpCode.PUSH_FN: {
+  // Mescla chunks internos no mapa global
+  if (instruction.operand.chunks) {
+    for (const [name, chunk] of instruction.operand.chunks) {
+      this.chunks.set(name, chunk);
+    }
+  }
+  this.push({ ...instruction.operand, capturedScope: this.scope });
+  break;
+}
+```
+
+## Upvalues
+
+Atualmente, Closures capturam o escopo inteiro. O problema é que se o escopo pai for descartado, booooom (explode), a referência fica pendurada. Upvalues resolvem isso pois capturam referências diretas às variáveis em vez do escopo.
+
+Então a ideia é que:
+
+```typescript
+interface Upvalue {
+  get(): any;
+  set(value: any): void;
+}
+```
+
+Quando uma `FunctionExpression` é criada, o compilador identifica quais variáveis externas ela usa e cria upvalues para cada uma:
+
+```typescript
+// Então, ao invés de capturarmos o escopo inteiro:
+capturedScope: this.scope
+
+// Capturamos apenas refs diretas:
+upvalues: [
+  total: {
+    get: () => this.scope.get('total'),
+    set: (value) => this.scope.set('total', value)
+  }
+]
+```
+
+Assim a VM filha usa os upvalues em vez do escopo pai pra acessar vars externas.
+
+> Isso vai exigir mudanças no compilador também, porque vamos precisar de FVA (free variable analysis) para identificar quais vars cada fn captura. Então eu preciso me aprofundar em Closure Conversion x Upvalue (Lua 5 tem uma implementação legal).
