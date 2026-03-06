@@ -22,8 +22,18 @@ class Interpreter {
   }
 
   run(program: Program): void {
+    // Hoisting imports first to allow circular dependencies, then execute the rest of the code
     for (const statement of program.body) {
-      this.execute(statement, this.globalScope);
+      if (statement.type === 'ImportStatement') {
+        this.execute(statement, this.globalScope);
+      }
+    }
+
+    // Then execute the rest of the statements in the program
+    for (const statement of program.body) {
+      if (statement.type !== 'ImportStatement') {
+        this.execute(statement, this.globalScope);
+      }
     }
   }
 
