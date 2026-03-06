@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 
 import Lexer from './lexer';
 import Parser from './parser';
@@ -17,7 +18,7 @@ const source = fs.readFileSync(filepath, 'utf-8');
 const tokens = new Lexer(source).tokenize();
 const ast = new Parser(tokens).parse();
 
-const { instructions, chunks } = new Compiler().compile(ast);
+const { instructions, chunks } = new Compiler(path.dirname(filepath)).compile(ast);
 const vm = new VM(instructions, chunks);
 
 vm.registerNatives(NATIVES)

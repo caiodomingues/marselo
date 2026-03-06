@@ -179,49 +179,71 @@ class VM {
           break;
         }
 
+        case OpCode.PUSH_FN: {
+          this.push({
+            ...instruction.operand,
+            capturedScope: this.scope  // closure support: capture the current scope when the function is defined
+          });
+          break;
+        }
+
         case OpCode.CALL: {
           const { name, arity } = instruction.operand;
 
-          // Native fn first
-          const native = this.natives.get(name);
-          if (native) {
-
-            const args = []
-            for (let i = 0; i < arity; i++) {
-              args.unshift(this.pop());
-            }
-
-            const result = native(...args);
-            if (result !== undefined) {
-              this.push(result);
-            }
-            break;
-          }
-
-          const chunk = this.chunks.get(name);
-          if (!chunk) {
-            throw new Error(`Undefined function: ${name}`);
-          }
-
-          const args = [];
+          const args: any[] = [];
           for (let i = 0; i < arity; i++) {
             args.unshift(this.pop());
           }
 
-          // Create a Scope for the fn call and set the params in it
-          const newScope = new Scope(this.scope);
-          for (let i = 0; i < arity; i++) {
-            newScope.set(chunk.parameters[i], args[i]);
+          // 1. Native fn first
+          const native = this.natives.get(name);
+          if (native) {
+            // Convert PUSH_FN into callable JS functions
+            const wrappedArgs = args.map(arg => {
+              if (arg && typeof arg === 'object' && arg.instructions) {
+                return (...innerArgs: any[]) => {
+                  const fnScope = new Scope(this.scope);
+                  arg.parameters.forEach((param: string, i: number) => {
+                    fnScope.set(param, innerArgs[i]);
+                  });
+                  const vm = new VM(arg.instructions, arg.chunks ?? this.chunks, fnScope);
+                  vm.registerNatives(Object.fromEntries(this.natives));
+                  vm.run();
+                  return vm.returnValue;
+                };
+              }
+              return arg;
+            });
+
+            const result = native(...wrappedArgs);
+            if (result !== undefined) this.push(result);
+            break;
           }
 
-          // Create a new VM for the fn call and run it with the chunk's instructions and the new scope
-          const vm = new VM(chunk.instructions, this.chunks, newScope);
+          // 2. FunctionExpression (anonymous function) - stored in the current scope
+          const variable = this.scope.tryGet(name);
+          if (variable && typeof variable === 'object' && variable.instructions) {
+            const fnScope = new Scope(variable.capturedScope ?? this.scope); // use captured scope for closures, or current scope if not available
+            variable.parameters.forEach((param: string, i: number) => {
+              fnScope.set(param, args[i]);
+            });
+            const vm = new VM(variable.instructions, variable.chunks ?? this.chunks, fnScope);
+            vm.registerNatives(Object.fromEntries(this.natives));
+            vm.run();
+            if (vm.returnValue !== undefined) this.push(vm.returnValue);
+            break;
+          }
+
+          // 3. Declared function - stored in chunks
+          const chunk = this.chunks.get(name);
+          if (!chunk) throw new Error(`Undefined function: ${name}`);
+
+          const fnScope = new Scope(this.scope);
+          chunk.parameters.forEach((param, i) => fnScope.set(param, args[i]));
+          const vm = new VM(chunk.instructions, this.chunks, fnScope);
+          vm.registerNatives(Object.fromEntries(this.natives));
           vm.run();
-
-          const result = vm.returnValue;
-          if (result !== undefined) {
-            this.push(result);
-          }
+          if (vm.returnValue !== undefined) this.push(vm.returnValue);
 
           break;
         }
@@ -231,6 +253,52 @@ class VM {
             this.returnValue = this.pop();
           }
           return;
+        }
+
+        case OpCode.BUILD_ARRAY: {
+          const elements = [];
+
+          for (let i = 0; i < instruction.operand; i++) {
+            elements.unshift(this.pop());
+          }
+
+          this.push(elements);
+          break;
+        }
+
+        case OpCode.GET_INDEX: {
+          const index = this.pop();
+          const object = this.pop();
+
+          if (Array.isArray(object)) this.push(object[index]);
+          else if (object instanceof Map) this.push(object.get(index));
+          else throw new Error(`Cannot index into type ${typeof object}`);
+
+          break;
+        }
+
+        case OpCode.SET_INDEX: {
+          const value = this.pop();
+          const index = this.pop();
+          const object = this.pop();
+
+          if (Array.isArray(object)) object[index] = value;
+          else if (object instanceof Map) object.set(index, value);
+          else throw new Error(`Cannot index into type ${typeof object}`);
+
+          this.push(value);
+          break;
+        }
+
+        case OpCode.BUILD_MAP: {
+          const map = new Map();
+          for (let i = 0; i < instruction.operand; i++) {
+            const key = this.pop();
+            const value = this.pop();
+            map.set(key, value);
+          }
+          this.push(map);
+          break;
         }
 
         default:

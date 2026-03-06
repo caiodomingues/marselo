@@ -1,9 +1,16 @@
+import * as path from "path";
+import * as fs from "fs";
+
 import { Expression, Program, Statement } from "./ast";
 import { Chunk, Instruction, OpCode } from "./opcode";
+import Lexer from "./lexer";
+import Parser from "./parser";
 
 class Compiler {
   private instructions: Instruction[] = [];
   private chunks: Map<string, Chunk> = new Map();
+
+  constructor(private baseDir: string = process.cwd()) {}
 
   private emit(op: OpCode, operand?: any): number {
     this.instructions.push({ op, operand });
@@ -25,11 +32,6 @@ class Compiler {
     switch (node.type) {
       case 'NullLiteral': {
         this.emit(OpCode.PUSH, null);
-        break;
-      }
-
-      case 'ArrayLiteral': {
-        // TODO: implement array literals
         break;
       }
 
@@ -67,17 +69,39 @@ class Compiler {
       }
 
       case "FunctionExpression": {
-        // TODO: implement function expressions
+        const funcCompiler = new Compiler()
+        for (const statement of node.body) {
+          funcCompiler.compileStatement(statement);
+        }
+
+        this.emit(OpCode.PUSH_FN, {
+          parameters: node.parameters,
+          instructions: funcCompiler.getInstructions(),
+          chunks: funcCompiler.getChunks(),
+        });
         break;
       }
 
-      case "IndexAssignment": {
-        // TODO: implement array first
+      case 'ArrayLiteral': {
+        for (const element of node.elements) {
+          this.compileExpression(element);
+        }
+        this.emit(OpCode.BUILD_ARRAY, node.elements.length);
         break;
       }
 
-      case "IndexExpression": {
-        // TODO: implement array first
+      case 'IndexExpression': {
+        this.compileExpression(node.object);
+        this.compileExpression(node.index);
+        this.emit(OpCode.GET_INDEX);
+        break;
+      }
+
+      case 'IndexAssignment': {
+        this.compileExpression(node.object);
+        this.compileExpression(node.index);
+        this.compileExpression(node.value);
+        this.emit(OpCode.SET_INDEX);
         break;
       }
 
@@ -102,7 +126,12 @@ class Compiler {
       }
 
       case "ObjectLiteral": {
-        // TODO: implement object literals
+        for (const property of node.properties) {
+          this.compileExpression(property.value);
+          this.emit(OpCode.PUSH, property.key);
+        }
+
+        this.emit(OpCode.BUILD_MAP, node.properties.length);
         break;
       }
 
@@ -221,7 +250,22 @@ class Compiler {
       }
 
       case "ImportStatement": {
-        // TODO: implement imports
+        const fullPath = path.resolve(this.baseDir, node.path);
+        const source = fs.readFileSync(fullPath, 'utf-8');
+        const tokens = new Lexer(source).tokenize();
+        const program = new Parser(tokens).parse();
+        const result = new Compiler(this.baseDir).compile(program);
+
+        // Merge chunks, so the main program can call the imported functions
+        for (const [name, chunk] of result.chunks) {
+          this.chunks.set(name, chunk);
+        }
+
+        // Merge instructions — código top-level do arquivo importado executa inline
+        for (const instruction of result.instructions) {
+          this.instructions.push(instruction);
+        }
+
         break;
       }
 

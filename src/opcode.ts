@@ -1,5 +1,6 @@
 export enum OpCode {
   PUSH,
+  PUSH_FN,
   POP,
 
   LOAD,
@@ -27,7 +28,13 @@ export enum OpCode {
   JUMP_IF_FALSE,
 
   CALL,
-  RETURN
+  RETURN,
+
+  BUILD_ARRAY,
+  GET_INDEX,
+  SET_INDEX,
+
+  BUILD_MAP, // for object literals
 }
 
 export interface Instruction {

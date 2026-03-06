@@ -25,6 +25,18 @@ class Scope {
     throw new Error(`Variable "${name}" not found`);
   }
 
+  tryGet(name: string): any {
+    if (this.variables.has(name)) {
+      return this.variables.get(name);
+    }
+
+    if (this.parent) {
+      return this.parent.tryGet(name);
+    }
+
+    return undefined;
+  }
+
   // Assign/update a variable in the current scope or parent scopes
   assign(name: string, value: any): void {
     if (this.variables.has(name)) {
