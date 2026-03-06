@@ -1,0 +1,34 @@
+{
+  "name": "marselo-vscode",
+  "displayName": "Marselo",
+  "description": "Syntax highlighting for the Marselo programming language (.mrs)",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "marselo",
+        "aliases": [
+          "Marselo",
+          "mrs"
+        ],
+        "extensions": [
+          ".mrs"
+        ],
+        "configuration": "./language-config.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "marselo",
+        "scopeName": "source.mrs",
+        "path": "./syntaxes/marselo.tmLanguage.json"
+      }
+    ]
+  }
+}
