@@ -5,7 +5,7 @@ Creating a programming language sounds fun and challenging, so I decided to try 
 (This repo is just a study, so don't expect it to be a complete programming language)
 
 - Little to no AI involvement, I want to do most of the work myself to learn as much as possible.
-- It's interpreted (tree-walking interpreter), but I might add a compiler or VM later, who knows?
+- It's interpreted (tree-walking interpreter) **and compiled** (bytecode + VM): both modes coexist.
 - It's named Marselo because my friend suggested it and I liked it. (It's just a name, no special meaning)
 - You may find random PT-BR comments/code, because it's my native language and sometimes I write comments in Portuguese to express my thoughts more naturally. (But I'll try to keep it mostly in English for better readability)
 - Files use the `.mrs` extension.
@@ -19,33 +19,62 @@ Source Code (.mrs)
      ↓
   Parser (Pratt Parsing)  → tokens → AST
      ↓
-  Interpreter             → AST → execution
+  ┌─────────────────────────────────────┐
+  │ Interpreter           → AST → execution (tree-walking)
+  │ Compiler              → AST → bytecode
+  │   └── VM              → bytecode → execution
+  └─────────────────────────────────────┘
+```
+
+## Embedding
+
+Marselo can be used as an embedded scripting library:
+
+```typescript
+import Marselo from './marselo';
+
+const mrs = new Marselo({ mode: 'vm' }); // or 'interpret'
+
+// Expose host functions to Marselo scripts
+mrs.register('double', (n: number) => n * 2);
+
+// Execute code: state persists between calls
+mrs.run(`var x = 10;`);
+mrs.run(`print(double(x));`); // 20
+
+// Evaluate an expression and get the result back
+const result = mrs.eval(`x * 3`); // 30
 ```
 
 ## Language Features
 
 ### Types
+
 - Numbers (`42`, `3.14`)
 - Strings (`"hello"`)
 - Booleans (`true`, `false`)
 - Null (`null`)
 - Arrays (`[1, 2, 3]`)
+- Objects / Maps (`{ key: value }`)
 
 ### Operators
-- Arithmetic: `+`, `-`, `*`, `/`
+
+- Arithmetic: `+`, `-`, `*`, `/`, `%`
 - Comparison: `==`, `!=`, `<`, `>`, `<=`, `>=`
 - Logical: `&&`, `||`, `!`
 - Nullish coalescing: `??`
 - Unary: `-x`, `!x`
 
 ### Variables
-```
+
+```plaintext
 var x = 10;
 var name = "Marselo";
 ```
 
 ### Functions
-```
+
+```plaintext
 fn add(a, b) {
   return a + b;
 }
@@ -57,7 +86,8 @@ var greet = fn(name) {
 ```
 
 ### Closures
-```
+
+```plaintext
 var createCounter = fn() {
   var total = 0;
   return fn() {
@@ -72,7 +102,8 @@ print(counter()); // 2
 ```
 
 ### Control Flow
-```
+
+```plaintext
 if (x > 10) {
   print("big");
 } else {
@@ -89,7 +120,8 @@ for (var i = 0; i < 10; i = i + 1) {
 ```
 
 ### Arrays
-```
+
+```plaintext
 var nums = [1, 2, 3];
 print(nums[0]);      // 1
 nums[0] = 99;
@@ -99,21 +131,57 @@ var matrix = [[1, 2], [3, 4]];
 print(matrix[0][1]); // 2
 ```
 
+### Objects
+
+```plaintext
+var person = { name: "Marselo", age: 42 };
+print(person["name"]); // Marselo
+person["age"] = 43;
+```
+
+### Modules
+
+```plaintext
+import "lib.mrs";
+
+// everything declared in lib.mrs is available here
+// imports are hoisted, so order doesn't matter
+```
+
 ### Native Functions
+
 | Function | Description |
-|---|---|
+| --- | --- |
 | `print(...)` | Print values to stdout |
-| `len(arr)` | Return the length of an array |
+| `len(arr)` | Return the length of an array or string |
 | `push(arr, val)` | Append a value to an array, return new length |
 | `pop(arr)` | Remove and return the last element of an array |
 | `range(start, end)` | Generate an array of numbers from start to end (exclusive) |
 | `map(arr, fn)` | Apply a function to each element, return new array |
+| `split(str, sep)` | Split a string into an array |
+| `join(arr, sep)` | Join an array into a string |
+| `upper(str)` | Uppercase a string |
+| `lower(str)` | Lowercase a string |
+| `trim(str)` | Trim whitespace from a string |
+| `substring(str, start, end)` | Extract a substring |
+| `input(prompt)` | Read a line from stdin |
+| `num(str)` | Parse a string as a number |
 
 ### Statements end with `;`
-```
+
+```plaintext
 var x = 10;
 print(x);
 ```
+
+## Docs (pt-BR, kinda journallying what I was learning)
+
+- [Lexer](docs/lexer.md)
+- [Parser](docs/parser.md)
+- [Evaluator](docs/evaluator.md)
+- [Arrays](docs/arrays.md)
+- [Closures](docs/closures.md)
+- [Bytecode & VM](docs/bytecode-vm.md)
 
 ## Why TypeScript?
 
