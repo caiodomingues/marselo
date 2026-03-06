@@ -1,9 +1,10 @@
 import * as fs from 'fs';
-import * as path from 'path';
 
-import Interpreter from './interpreter';
 import Lexer from './lexer';
 import Parser from './parser';
+import Compiler from './compiler';
+import VM from './vm';
+import { NATIVES } from './natives';
 
 const filepath = process.argv[2];
 
@@ -12,14 +13,13 @@ if (!filepath) {
   process.exit(1);
 }
 
-const source = fs.readFileSync(path.resolve(filepath), 'utf-8');
-const lexer = new Lexer(source);
+const source = fs.readFileSync(filepath, 'utf-8');
+const tokens = new Lexer(source).tokenize();
+const ast = new Parser(tokens).parse();
 
-const tokens = lexer.tokenize();
+const { instructions, chunks } = new Compiler().compile(ast);
+const vm = new VM(instructions, chunks);
 
-const parser = new Parser(tokens);
-const ast = parser.parse();
+vm.registerNatives(NATIVES)
 
-const interpreter = new Interpreter();
-interpreter.setBaseDir(path.dirname(filepath));
-interpreter.run(ast);
+vm.run();

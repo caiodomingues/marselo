@@ -182,6 +182,46 @@ JUMP <inicio>
 
 O `JUMP` incondicional no final é o que cria o loop, voltando para o início da condição. O `JUMP_IF_FALSE` é a condição de saída;
 
+### Backpatching
+
+Quando o compilador encontra um `if` ou `while`, ele não sabe para onde o `JUMP` deve ir, porque ainda não gerou as instruções do bloco (o corpo da estrutura). A solução é emitir um `JUMP` com um endereço temporário (placeholder) e depois, quando chegar no final do bloco, voltar e preencher o endereço correto. Isso é chamado de **backpatching**.
+
+Pensa na lista de instruções como uma fita numerada, vamos usar o mesmo exemplo anterior: `while (x > 0) { x = x - 1; }`
+
+```plaintext
+pos 0: LOAD x
+pos 1: PUSH 0
+pos 2: GT
+pos 3: JUMP_IF_FALSE -1   // placeholder, ainda não sabemos onde para onde ir
+pos 4: LOAD x
+pos 5: PUSH 1
+pos 6: SUB
+pos 7: STORE x
+pos 8: JUMP -1              // placeholder
+```
+
+Agora que fizemos tudo, aplicamos o backpatching, já que sabemos os endereços corretos: O `JUMP_IF_FALSE` deve ir da P3 para a P9 (final do loop, que ainda não existe, mas instructions.length já é 9 [o index começa em 0]) e o `JUMP` deve ir da P8 para a P0 (início do loop):
+
+```plaintext
+pos 3: JUMP_IF_FALSE 9
+pos 8: JUMP 0
+```
+
+O que resulta em uma fita final de:
+
+```plaintext
+pos 0: LOAD x
+pos 1: PUSH 0
+pos 2: GT
+pos 3: JUMP_IF_FALSE 9     // se x <= 0, pula para o fim
+pos 4: LOAD x
+pos 5: PUSH 1
+pos 6: SUB
+pos 7: STORE x
+pos 8: JUMP 0              // volta para P0 (condição)
+pos 9: ...                 // continua com o resto do programa
+```
+
 ## A VM
 
 É surpreendentemente mais simples (do que eu esperava). É um loop com switch:

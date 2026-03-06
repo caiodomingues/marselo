@@ -1,13 +1,12 @@
-import readLineSync from 'readline-sync';
 import * as fs from 'fs';
 import * as path from 'path';
 
 import Lexer from './lexer';
 import Parser from './parser';
-
 import { Expression, Program, Statement } from "./ast";
 import ReturnSignal from "./return-signal";
 import Scope from "./scope";
+import { NATIVES } from './natives';
 
 class Interpreter {
   private globalScope: Scope = new Scope();
@@ -285,98 +284,10 @@ class Interpreter {
     }
   }
 
-  // Register native functions in the global scope
   private registerNatives(): void {
-    // A simple print function to output messages from the interpreted code
-    this.globalScope.set('print', (...args: any[]) => {
-      console.log(...args);
-    });
-
-    // Return length of an array, throw an error if the argument is not an array
-    this.globalScope.set('len', (array: any[]) => {
-      if (!Array.isArray(array)) {
-        throw new Error(`len() expects an array, got ${typeof array}`);
-      }
-      return array.length;
-    });
-
-    // Push a value to an array, return the new length. Throw an error if the first argument is not an array
-    this.globalScope.set('push', (array: any[], value: any) => {
-      if (!Array.isArray(array)) {
-        throw new Error(`push() expects an array as the first argument, got ${typeof array}`);
-      }
-
-      array.push(value);
-      return array.length;
-    });
-
-    // Pop a value from an array, return the removed element. Throw an error if the argument is not an array
-    this.globalScope.set('pop', (array: any[]) => {
-      if (!Array.isArray(array)) {
-        throw new Error(`pop() expects an array, got ${typeof array}`);
-      }
-
-      return array.pop();
-    });
-
-    // A simple range function to generate an array of numbers from start to end (exclusive)
-    this.globalScope.set('range', (start: number, end: number) => {
-      if (typeof start !== 'number' || typeof end !== 'number') {
-        throw new Error(`range() expects two numbers, got ${typeof start} and ${typeof end}`);
-      }
-      const result = [];
-      for (let i = start; i < end; i++) {
-        result.push(i);
-      }
-      return result;
-    });
-
-    // A simple map function to apply a function to each element of an array and return a new array with the results
-    this.globalScope.set('map', (array: any[], func: (x: any) => any) => {
-      if (!Array.isArray(array)) {
-        throw new Error(`map() expects an array as the first argument, got ${typeof array}`);
-      }
-      if (typeof func !== 'function') {
-        throw new Error(`map() expects a function as the second argument, got ${typeof func}`);
-      }
-      return array.map(func);
-    });
-
-    this.globalScope.set('split', (str: string, separator: string) => {
-      return str.split(separator);
-    });
-
-    this.globalScope.set('join', (array: any[], separator: string) => {
-      return array.join(separator);
-    });
-
-    this.globalScope.set('upper', (str: string) => {
-      return str.toUpperCase();
-    });
-
-    this.globalScope.set('lower', (str: string) => {
-      return str.toLowerCase();
-    });
-
-    this.globalScope.set('trim', (str: string) => {
-      return str.trim();
-    });
-
-    this.globalScope.set('substring', (str: string, start: number, end?: number) => {
-      return str.substring(start, end);
-    });
-
-    this.globalScope.set('input', (prompt: string) => {
-      return readLineSync.question(prompt ?? '');
-    });
-
-    this.globalScope.set('num', (value: any) => {
-      const res = Number(value);
-      if (isNaN(res)) {
-        throw new Error(`num() could not convert "${value}" to a number`);
-      }
-      return res;
-    });
+    for (const [name, fn] of Object.entries(NATIVES)) {
+      this.globalScope.set(name, fn);
+    }
   }
 }
 
