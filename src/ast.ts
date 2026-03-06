@@ -3,6 +3,7 @@ export type Expression =
   | StringLiteral
   | BooleanLiteral
   | NullLiteral
+  | ObjectLiteral
   | Identifier
   | BinaryExpression
   | UnaryExpression
@@ -19,6 +20,7 @@ export type Statement =
   | IfStatement
   | WhileStatement
   | ForStatement
+  | ImportStatement
   | ReturnStatement
   | ExpressionStatement;
 
@@ -42,6 +44,14 @@ export interface BooleanLiteral {
 
 export interface NullLiteral {
   type: 'NullLiteral';
+}
+
+export interface ObjectLiteral {
+  type: 'ObjectLiteral';
+  properties: Array<{
+    key: string;
+    value: Expression;
+  }>;
 }
 
 export interface Identifier {
@@ -83,6 +93,11 @@ export interface CallExpression {
   type: 'CallExpression';
   name: string;                     // The function name, e.g., 'print'
   arguments: Expression[];          // The arguments passed to the function
+}
+
+export interface ImportStatement {
+  type: 'ImportStatement';
+  path: string;                     // The path of the module being imported, e.g., './utils.mrs'
 }
 
 // This allows us to have function calls as statements, e.g., print("maior");

@@ -1,0 +1,65 @@
+// Marselo - test program
+// Tests most of the language features
+
+import "lib.mrs";
+
+// Fibonacci -> naive recursive implementation (not efficient, but simple)
+// Returns 1, 1, 2, 3, 5, 8, ...
+fn fib(n) {
+  if (n <= 1) {
+    return n;
+  }
+  return fib(n - 1) + fib(n - 2);
+}
+
+// FizzBuzz -> prints numbers from 1 to n, but for multiples of 3 prints "Fizz",
+// for multiples of 5 prints "Buzz", and for multiples of both prints "FizzBuzz"
+fn fizzbuzz(n) {
+  var i = 1;
+  while (i <= n) {
+    if (i % 3 == 0 && i % 5 == 0) {
+      print("FizzBuzz");
+    } else if (i % 3 == 0) {
+      print("Fizz");
+    } else if (i % 5 == 0) {
+      print("Buzz");
+    } else {
+      print(i);
+    }
+    i = i + 1;
+  }
+}
+
+// Closure counter -> returns a function that, when called, increments
+// and returns a total count
+var criarContador = fn() {
+  var total = 0;
+  return fn() {
+    total = total + 1;
+    return total;
+  };
+};
+
+// Array operations -> creates an array of numbers from 1 to 5, and then maps
+// it to their squares
+var nums = range(1, 6);
+var quadrados = map(nums, fn(x) { return x * x; });
+
+// Imported from lib.mrs
+hiFromLib();
+
+print("=== Fibonacci ===");
+print(fib(10));
+
+print("=== FizzBuzz ===");
+fizzbuzz(15);
+
+print("=== Contador ===");
+var contador = criarContador();
+print(contador());
+print(contador());
+print(contador());
+
+print("=== Arrays ===");
+print(nums);
+print(quadrados);

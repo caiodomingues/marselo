@@ -1,4 +1,4 @@
-// Same as Scope
+// Same as Environment in some other interpreters, but here we call it Scope to avoid confusion with JavaScript's global environment.
 class Scope {
   private variables: Map<string, any> = new Map();
   private parent: Scope | null;
@@ -18,7 +18,7 @@ class Scope {
       return this.variables.get(name);
     }
 
-    if(this.parent) {
+    if (this.parent) {
       return this.parent.get(name);
     }
 

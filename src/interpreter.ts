@@ -1,12 +1,24 @@
+import readLineSync from 'readline-sync';
+import * as fs from 'fs';
+import * as path from 'path';
+
+import Lexer from './lexer';
+import Parser from './parser';
+
 import { Expression, Program, Statement } from "./ast";
 import ReturnSignal from "./return-signal";
 import Scope from "./scope";
 
 class Interpreter {
   private globalScope: Scope = new Scope();
+  private baseDir: string = process.cwd();
 
   constructor() {
     this.registerNatives();
+  }
+
+  setBaseDir(dir: string): void {
+    this.baseDir = dir;
   }
 
   run(program: Program): void {
@@ -90,6 +102,18 @@ class Interpreter {
         break;
       }
 
+      case 'ImportStatement': {
+        // For simplicity, we will just read the file and execute it in the current scope
+        const fullPath = path.resolve(this.baseDir, node.path);
+        const source = fs.readFileSync(fullPath, 'utf-8');
+        const lexer = new Lexer(source);
+        const tokens = lexer.tokenize();
+        const parser = new Parser(tokens);
+        const program = parser.parse();
+        this.run(program);
+        break;
+      }
+
       case 'ReturnStatement': {
         const value = node.value ? this.evaluate(node.value, scope) : undefined;
         throw new ReturnSignal(value);
@@ -114,6 +138,17 @@ class Interpreter {
         return node.elements.map(element => this.evaluate(element, scope));
       }
 
+      case "ObjectLiteral": {
+        // Use JS Map to store object properties, allow any type of keys and avoid issues with proto properties.
+        const obj = new Map<string, any>();
+        for (const prop of node.properties) {
+          // evaluate each prop.value and call map.set with the prop.key and the evaluated value
+          const value = this.evaluate(prop.value, scope);
+          obj.set(prop.key, value);
+        }
+        return obj;
+      }
+
       case "IndexExpression": {
         const object = this.evaluate(node.object, scope);
         const index = this.evaluate(node.index, scope);
@@ -124,6 +159,8 @@ class Interpreter {
             throw new Error(`Array index must be a number, got ${typeof index}`);
           }
           return object[index];
+        } else if (object instanceof Map) {
+          return object.get(index);
         } else {
           throw new Error(`Cannot index into type ${typeof object}`);
         }
@@ -140,6 +177,9 @@ class Interpreter {
             throw new Error(`Array index must be a number, got ${typeof index}`);
           }
           object[index] = value;
+          return value;
+        } else if (object instanceof Map) {
+          object.set(index, value);
           return value;
         } else {
           throw new Error(`Cannot index into type ${typeof object}`);
@@ -181,6 +221,8 @@ class Interpreter {
             return left * right;
           case '/':
             return left / right;
+          case '%':
+            return left % right;
           case '==':
             return left === right;
           case '!=':
@@ -288,6 +330,42 @@ class Interpreter {
         throw new Error(`map() expects a function as the second argument, got ${typeof func}`);
       }
       return array.map(func);
+    });
+
+    this.globalScope.set('split', (str: string, separator: string) => {
+      return str.split(separator);
+    });
+
+    this.globalScope.set('join', (array: any[], separator: string) => {
+      return array.join(separator);
+    });
+
+    this.globalScope.set('upper', (str: string) => {
+      return str.toUpperCase();
+    });
+
+    this.globalScope.set('lower', (str: string) => {
+      return str.toLowerCase();
+    });
+
+    this.globalScope.set('trim', (str: string) => {
+      return str.trim();
+    });
+
+    this.globalScope.set('substring', (str: string, start: number, end?: number) => {
+      return str.substring(start, end);
+    });
+
+    this.globalScope.set('input', (prompt: string) => {
+      return readLineSync.question(prompt ?? '');
+    });
+
+    this.globalScope.set('num', (value: any) => {
+      const res = Number(value);
+      if (isNaN(res)) {
+        throw new Error(`num() could not convert "${value}" to a number`);
+      }
+      return res;
     });
   }
 }

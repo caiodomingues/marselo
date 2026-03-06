@@ -61,6 +61,12 @@ class Lexer {
         continue;
       }
 
+      if (char === ':') {
+        tokens.push({ type: TokenType.COLON, value: ':', line: this.line });
+        this.pos++;
+        continue;
+      }
+
       if (char === '!') {
         if (this.source[this.pos + 1] === '=') {
           tokens.push({ type: TokenType.NOT_EQUALS, value: '!=', line: this.line });
@@ -144,7 +150,23 @@ class Lexer {
       }
 
       if (char === '/') {
-        tokens.push({ type: TokenType.SLASH, value: '/', line: this.line });
+        // Handle single-line comments (//), no support for multi-line comments yet
+        if (this.source[this.pos + 1] === '/') {
+          // Skip single-line comments
+          this.pos += 2;
+          while (this.lookahead() !== '\n' && this.pos < this.source.length) {
+            this.pos++;
+          }
+          continue;
+        } else {
+          tokens.push({ type: TokenType.SLASH, value: '/', line: this.line });
+          this.pos++;
+          continue;
+        }
+      }
+
+      if (char === '%') {
+        tokens.push({ type: TokenType.MODULUS, value: '%', line: this.line });
         this.pos++;
         continue;
       }

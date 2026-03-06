@@ -1,0 +1,18 @@
+// Guess the number
+var secret = 42;
+var attempts = 0;
+var guessed = false;
+
+while (!guessed) {
+  var guess = num(input("Guess: "));
+  attempts = attempts + 1;
+
+  if (guess == 42) {
+    guessed = true;
+    print("Guessed in " + attempts + " attempts!");
+  } else if (guess < 42) {
+    print("Too low!");
+  } else {
+    print("Too high!");
+  }
+}

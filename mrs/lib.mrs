@@ -1,0 +1,5 @@
+// Import this somewhere else
+
+fn hiFromLib() {
+    print("Hi from lib!");
+}

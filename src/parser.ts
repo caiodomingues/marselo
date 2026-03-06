@@ -18,7 +18,8 @@ class Parser {
     [TokenType.PLUS]: 6,
     [TokenType.MINUS]: 6,
     [TokenType.ASTERISK]: 7,
-    [TokenType.SLASH]: 7
+    [TokenType.SLASH]: 7,
+    [TokenType.MODULUS]: 7
   };
 
   constructor(tokens: Token[]) {
@@ -72,6 +73,8 @@ class Parser {
         return this.parseForStatement();
       case TokenType.RETURN:
         return this.parseReturnStatement();
+      case TokenType.IMPORT:
+        return this.parseImportStatement();
       default:
         return this.parseExpressionStatement();
     }
@@ -115,6 +118,17 @@ class Parser {
     }
   }
 
+  // Structure: IMPORT   STRING   SEMICOLON
+  parseImportStatement(): Statement {
+    this.expect(TokenType.IMPORT);
+    const pathToken = this.expect(TokenType.STRING);
+    this.expect(TokenType.SEMICOLON);
+    return {
+      type: 'ImportStatement',
+      path: pathToken.value
+    };
+  }
+
   // Structure: IDENTIFIER   LEFT_PAREN   [arguments - optional]   RIGHT_PAREN
   parseCallExpression(functionName: string): Expression {
     this.expect(TokenType.LEFT_PAREN);
@@ -136,6 +150,7 @@ class Parser {
   }
 
   // Structure: IF   LEFT_PAREN   condition   RIGHT_PAREN   [ELSE - optional]   else
+  // Structure: IF   LEFT_PAREN   condition   RIGHT_PAREN   then   ELSE   IF   <...>   (else if)
   parseIfStatement(): Statement {
     let elseBranch: Statement[] | undefined = undefined;
 
@@ -150,7 +165,13 @@ class Parser {
     // Else branch = the block following the else keyword, if it exists
     if (this.peek().type === TokenType.ELSE) {
       this.expect(TokenType.ELSE);
-      elseBranch = this.parseBlock();
+      // We may have an else if, which is just an else followed by another if statement.
+
+      if (this.peek().type === TokenType.IF) {
+        elseBranch = [this.parseIfStatement()]; // recursively parse the else, without the block
+      } else {
+        elseBranch = this.parseBlock();
+      }
     }
 
     return {
@@ -387,6 +408,30 @@ class Parser {
 
         this.expect(TokenType.RIGHT_BRACKET);
         return { type: 'ArrayLiteral', elements };
+      }
+
+      // This can be the start of an object literal or a block state, we can diff then by looking at the context: if we have an = before, it's an object literal, otherwise it's a block statement.
+      // For example:
+      // var obj = { a: 1, b: 2 }; // object literal
+      // if (x > 10) { ... } // block statement
+      case TokenType.LEFT_BRACE: {
+        this.consume();
+        const properties: Array<{ key: string; value: Expression }> = [];
+
+        while (this.peek().type !== TokenType.RIGHT_BRACE) {
+          const keyToken = this.expect(TokenType.IDENTIFIER);
+          const key = keyToken.value;
+
+          this.expect(TokenType.COLON);
+          const value = this.parseExpression();
+
+          properties.push({ key, value });
+          if (this.peek().type === TokenType.COMMA) {
+            this.consume();
+          }
+        }
+        this.expect(TokenType.RIGHT_BRACE);
+        return { type: 'ObjectLiteral', properties };
       }
 
       default:

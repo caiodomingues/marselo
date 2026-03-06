@@ -1,0 +1,16 @@
+var pessoa = {
+  nome: "João",
+  endereco: {
+    cidade: "São Paulo",
+    cep: "01310-100"
+  }
+};
+
+print(pessoa["nome"]);
+print(pessoa["endereco"]["cidade"]);
+
+fn saudar(p) {
+  return "Olá, " + p["nome"] + "!";
+}
+
+print(saudar(pessoa));

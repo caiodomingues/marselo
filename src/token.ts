@@ -7,6 +7,7 @@ export enum TokenType {
   RIGHT_PAREN = 'RIGHT_PAREN',                      // )
   LEFT_BRACKET = 'LEFT_BRACKET',                    // [
   RIGHT_BRACKET = 'RIGHT_BRACKET',                  // ]
+  COLON = 'COLON',                                  // :
   ASSIGN = 'ASSIGN',                                // =
   EQUALS = 'EQUALS',                                // ==
   NOT_EQUALS = 'NOT_EQUALS',                        // !=
@@ -30,12 +31,14 @@ export enum TokenType {
   MINUS = 'MINUS',                                  // -
   ASTERISK = 'ASTERISK',                            // *
   SLASH = 'SLASH',                                  // /
+  MODULUS = 'MODULUS',                              // %
   VAR = 'VAR',                                      // var keyword for variable declarations
   RETURN = 'RETURN',                                // return keyword for returning values from functions
   TRUE = 'TRUE',                                    // true boolean literal
   FALSE = 'FALSE',                                  // false boolean literal
   NULL = 'NULL',                                    // null literal
   EOF = 'EOF',                                      // end of file/input
+  IMPORT = 'IMPORT',                                // import keyword for importing modules
 }
 
 export interface Token {
@@ -55,4 +58,5 @@ export const KEYWORDS: Record<string, TokenType> = {
   'true': TokenType.TRUE,
   'false': TokenType.FALSE,
   'null': TokenType.NULL,
+  'import': TokenType.IMPORT,
 }

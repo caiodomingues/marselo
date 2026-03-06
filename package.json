@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "ts-node src/main.ts",
-    "dev": "ts-node --watch src/main.ts"
+    "dev": "ts-node --watch src/main.ts",
+    "marselo": "ts-node src/main.ts"
   },
   "repository": {
     "type": "git",
@@ -23,7 +24,11 @@
   },
   "homepage": "https://github.com/caiodomingues/marselo#readme",
   "devDependencies": {
+    "@types/readline-sync": "^1.4.8",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "readline-sync": "^1.4.10"
   }
 }
