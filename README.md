@@ -9,10 +9,9 @@ Creating a programming language sounds fun and challenging, so I decided to try 
 - It's named Marselo because my friend suggested it and I liked it. (It's just a name, no special meaning)
 - You may find random PT-BR comments/code, because it's my native language and sometimes I write comments in Portuguese to express my thoughts more naturally. (But I'll try to keep it mostly in English for better readability)
 - Files use the `.mrs` extension.
-- Bytecode visualizer at `/tools/visualizer.html` (open in browser and paste bytecode to see the instructions in a readable format).
 - REPL (Read-Eval-Print Loop) for interactive coding and testing snippets.
 - Bytecode serialization for saving compiled code to disk and loading it later, improving startup time, with `--compile`
-- Tracer for debugging: `--trace` flag to print executed instructions and their operands during runtime, helping to understand the execution flow and identify issues. (Tiny and basic UI at `/tools/index.html`)
+- Tracer for debugging: `--trace` flag to print executed instructions and their operands during runtime, helping to understand the execution flow and identify issues. (Tiny and basic UI at `/tools/inspection/index.html`)
 --
 
 Also, simple tooling and w/e:
