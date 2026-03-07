@@ -9,7 +9,8 @@
   "scripts": {
     "start": "ts-node src/main.ts",
     "dev": "ts-node --watch src/main.ts",
-    "marselo": "ts-node src/main.ts"
+    "marselo": "ts-node src/main.ts",
+    "repl": "ts-node src/repl.ts"
   },
   "repository": {
     "type": "git",

@@ -2,16 +2,27 @@ import { Chunk, Instruction, OpCode } from "./opcode";
 import Scope from "./scope";
 
 interface CallFrame {
+  name?: string;
   instructions: Instruction[];
   ip: number;
   scope: Scope;
   upvalues?: Record<string, { get: () => any; set: (value: any) => void }>;
 }
 
+export interface TraceStep {
+  section: string;
+  ip: number;
+  instruction: Instruction;
+  stackBefore: any[];
+  stackAfter: any[];
+}
+
 class VM {
   private stack: any[] = [];
   private callStack: CallFrame[] = [];
   private natives: Map<string, (...args: any[]) => any> = new Map();
+  private tracing: boolean = false;
+  private trace: TraceStep[] = [];
 
   constructor(
     private instructions: Instruction[],
@@ -28,6 +39,14 @@ class VM {
       throw new Error("Stack underflow");
     }
     return this.stack.pop();
+  }
+
+  enableTracing(): void {
+    this.tracing = true;
+  }
+
+  getTrace(): TraceStep[] {
+    return this.trace;
   }
 
   registerNatives(natives: { [name: string]: (...args: any[]) => any }): void {
@@ -57,6 +76,8 @@ class VM {
 
       const instruction = frame.instructions[frame.ip];
       frame.ip++;
+
+      const stackBefore = [...this.stack];
 
       switch (instruction.op) {
         case OpCode.PUSH: {
@@ -210,7 +231,12 @@ class VM {
 
         case OpCode.PUSH_FN: {
           if (instruction.operand.chunks) {
-            for (const [name, chunk] of instruction.operand.chunks) {
+            // This ensures that if chunks were serialized as plain objects, we convert them back to Maps -> .mbc files
+            const chunks = instruction.operand.chunks instanceof Map
+              ? instruction.operand.chunks
+              : new Map(Object.entries(instruction.operand.chunks));
+
+            for (const [name, chunk] of chunks) {
               this.chunks.set(name, chunk);
             }
           }
@@ -276,6 +302,7 @@ class VM {
             variable.parameters.forEach((p: string, i: number) => fnScope.set(p, args[i]));
 
             this.callStack.push({
+              name: name,
               instructions: variable.instructions,
               ip: 0,
               scope: fnScope,
@@ -293,6 +320,7 @@ class VM {
           chunk.parameters.forEach((p, i) => fnScope.set(p, args[i]));
 
           this.callStack.push({
+            name: name,
             instructions: chunk.instructions,
             ip: 0,
             scope: fnScope,
@@ -356,6 +384,16 @@ class VM {
 
         default:
           throw new Error(`Unsupported opcode: ${instruction.op}`);
+      }
+
+      if (this.tracing) {
+        this.trace.push({
+          section: frame.name ?? 'main',
+          ip: frame.ip - 1,
+          instruction,
+          stackBefore,
+          stackAfter: [...this.stack],
+        })
       }
     }
   }

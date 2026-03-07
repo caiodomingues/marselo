@@ -51,3 +51,9 @@ export interface Chunk {
   parameters: string[];
   instructions: Instruction[];
 }
+
+export interface SerializedBytecode {
+  version: number;                    // TODO: we can handle that later :D
+  instructions: Instruction[];
+  chunks: Record<string, Chunk>;
+}

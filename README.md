@@ -9,19 +9,20 @@ Creating a programming language sounds fun and challenging, so I decided to try 
 - It's named Marselo because my friend suggested it and I liked it. (It's just a name, no special meaning)
 - You may find random PT-BR comments/code, because it's my native language and sometimes I write comments in Portuguese to express my thoughts more naturally. (But I'll try to keep it mostly in English for better readability)
 - Files use the `.mrs` extension.
-- `--watch` flag for auto-reloading on file changes.
 - Bytecode visualizer at `/tools/visualizer.html` (open in browser and paste bytecode to see the instructions in a readable format).
+- REPL (Read-Eval-Print Loop) for interactive coding and testing snippets.
+- Bytecode serialization for saving compiled code to disk and loading it later, improving startup time, with `--compile`
+--
 
-Also, tooling and w/e:
+Also, simple tooling and w/e:
 
 - Inside `/editors`, you may find a basic syntax highlighting extension for VSCode that I made for learning as well (never done that before).
 - Formatter (kinda basic, like prettier but for Marselo).
+- `--watch` flag for auto-reloading on file changes.
 
 ## What can I still improve/implement?
 
 - Tail call optimization (TCO) -> improves performance of recursive functions and prevents stack overflow
-- Bytecode Serialization -> allows saving compiled bytecode to disk and loading it later, improving startup time
-- REPL -> interactive shell for testing code snippets and exploring the language
 - Better error handling -> more informative error messages with line numbers and context
 - Try/catch -> exception handling for better error management
 - Standard library -> useful built-in functions and modules for common tasks

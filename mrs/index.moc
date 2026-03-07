@@ -1,0 +1,107 @@
+=== main ===
+0000 PUSH_FN          <fn> ()
+0001 STORE            criarContador
+0002 PUSH             1
+0003 PUSH             6
+0004 CALL             range (2 args)
+0005 STORE            nums
+0006 LOAD             nums
+0007 PUSH_FN          <fn> (x)
+0008 CALL             map (2 args)
+0009 STORE            quadrados
+0010 CALL             hiFromLib (0 args)
+0011 PUSH             === Fibonacci ===
+0012 CALL             print (1 args)
+0013 PUSH             10
+0014 CALL             fib (1 args)
+0015 CALL             print (1 args)
+0016 PUSH             === FizzBuzz ===
+0017 CALL             print (1 args)
+0018 PUSH             15
+0019 CALL             fizzbuzz (1 args)
+0020 PUSH             === Contador ===
+0021 CALL             print (1 args)
+0022 CALL             criarContador (0 args)
+0023 STORE            contador
+0024 CALL             contador (0 args)
+0025 CALL             print (1 args)
+0026 CALL             contador (0 args)
+0027 CALL             print (1 args)
+0028 CALL             contador (0 args)
+0029 CALL             print (1 args)
+0030 PUSH             === Arrays ===
+0031 CALL             print (1 args)
+0032 LOAD             nums
+0033 CALL             print (1 args)
+0034 LOAD             quadrados
+0035 CALL             print (1 args)
+
+=== hiFromLib ===
+0000 PUSH             Hi from lib!
+0001 CALL             print (1 args)
+
+=== fib ===
+0000 LOAD             n
+0001 PUSH             1
+0002 LTE              
+0003 JUMP_IF_FALSE    6
+0004 LOAD             n
+0005 RETURN           
+0006 LOAD             n
+0007 PUSH             1
+0008 SUB              
+0009 CALL             fib (1 args)
+0010 LOAD             n
+0011 PUSH             2
+0012 SUB              
+0013 CALL             fib (1 args)
+0014 ADD              
+0015 RETURN           
+
+=== fizzbuzz ===
+0000 PUSH             1
+0001 STORE            i
+0002 LOAD             i
+0003 LOAD             n
+0004 LTE              
+0005 JUMP_IF_FALSE    46
+0006 LOAD             i
+0007 PUSH             3
+0008 MOD              
+0009 PUSH             0
+0010 EQ               
+0011 LOAD             i
+0012 PUSH             5
+0013 MOD              
+0014 PUSH             0
+0015 EQ               
+0016 AND              
+0017 JUMP_IF_FALSE    21
+0018 PUSH             FizzBuzz
+0019 CALL             print (1 args)
+0020 JUMP             41
+0021 LOAD             i
+0022 PUSH             3
+0023 MOD              
+0024 PUSH             0
+0025 EQ               
+0026 JUMP_IF_FALSE    30
+0027 PUSH             Fizz
+0028 CALL             print (1 args)
+0029 JUMP             41
+0030 LOAD             i
+0031 PUSH             5
+0032 MOD              
+0033 PUSH             0
+0034 EQ               
+0035 JUMP_IF_FALSE    39
+0036 PUSH             Buzz
+0037 CALL             print (1 args)
+0038 JUMP             41
+0039 LOAD             i
+0040 CALL             print (1 args)
+0041 LOAD             i
+0042 PUSH             1
+0043 ADD              
+0044 STORE            i
+0045 JUMP             2

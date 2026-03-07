@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marselo — Trace Viewer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;700&display=swap');
+
+    :root {
+      --bg:        #0a0a0b;
+      --surface:   #111113;
+      --border:    #222226;
+      --muted:     #3a3a42;
+      --text:      #c8c8d4;
+      --dim:       #55556a;
+      --accent:    #e8c468;
+      --accent2:   #7c6fe0;
+      --green:     #5ecb8a;
+      --red:       #e06f6f;
+      --blue:      #6fb3e0;
+      --orange:    #e09f6f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Geist Mono', monospace;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      font-family: 'Geist Mono', monospace;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    .logo span {
+      color: var(--dim);
+      font-weight: 400;
+      font-size: 13px;
+      margin-left: 10px;
+      font-family: 'Geist Mono', monospace;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .file-info {
+      font-size: 11px;
+      color: var(--dim);
+    }
+
+    .load-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      border: 1px solid var(--muted);
+      color: var(--text);
+      font-family: 'Geist Mono', monospace;
+      font-size: 12px;
+      padding: 7px 14px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .load-btn:hover { border-color: var(--accent); color: var(--accent); }
+    #file-input { display: none; }
+
+    /* ── MAIN LAYOUT ── */
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── LEFT: OPCODE LIST ── */
+    .opcode-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+
+    .panel-header {
+      padding: 10px 16px;
+      font-size: 10px;
+      color: var(--dim);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .opcode-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      scroll-behavior: smooth;
+    }
+
+    .opcode-list::-webkit-scrollbar { width: 4px; }
+    .opcode-list::-webkit-scrollbar-track { background: transparent; }
+    .opcode-list::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
+
+    .opcode-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      margin-bottom: 2px;
+      cursor: pointer;
+      transition: background 0.1s, border-color 0.1s;
+      font-size: 12px;
+    }
+
+    .opcode-item:hover { background: #16161a; }
+
+    .opcode-item.current {
+      background: #1a1a10;
+      border-color: var(--accent);
+    }
+
+    .op-section-badge {
+      font-size: 9px;
+      color: var(--dim);
+      background: var(--border);
+      padding: 1px 5px;
+      border-radius: 2px;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .op-idx {
+      color: var(--muted);
+      font-size: 11px;
+      min-width: 24px;
+      text-align: right;
+    }
+
+    .op-name {
+      font-weight: 700;
+      min-width: 140px;
+      letter-spacing: 0.04em;
+    }
+
+    .op-operand { color: var(--dim); font-weight: 300; }
+
+    /* opcode colors */
+    .op-PUSH, .op-PUSH_FN   { color: var(--green); }
+    .op-LOAD                 { color: var(--blue); }
+    .op-STORE                { color: var(--orange); }
+    .op-CALL, .op-RETURN     { color: var(--accent2); }
+    .op-JUMP, .op-JUMP_IF_FALSE { color: var(--red); }
+    .op-ADD,.op-SUB,.op-MUL,.op-DIV,.op-MOD { color: #a0c8a0; }
+    .op-EQ,.op-NEQ,.op-LT,.op-GT,.op-LTE,.op-GTE { color: #c8a0c8; }
+    .op-AND,.op-OR,.op-NOT,.op-NULLISH { color: #a0b8c8; }
+    .op-BUILD_ARRAY,.op-GET_INDEX,.op-SET_INDEX { color: #c8b87a; }
+    .op-BUILD_MAP,.op-GET_PROPERTY,.op-SET_PROPERTY { color: #c8b87a; }
+    .op-POP { color: var(--dim); }
+
+    /* ── MIDDLE: STACK ── */
+    .stack-panel {
+      width: 180px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .stack-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 4px;
+    }
+
+    .stack-list::-webkit-scrollbar { width: 3px; }
+    .stack-list::-webkit-scrollbar-thumb { background: var(--muted); }
+
+    .stack-item {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-size: 11px;
+      color: var(--text);
+      background: var(--surface);
+      text-align: center;
+      transition: background 0.15s, border-color 0.15s;
+      word-break: break-all;
+      position: relative;
+    }
+
+    .stack-item.top {
+      border-color: var(--accent);
+      background: #1a1a10;
+      color: var(--accent);
+    }
+
+    .stack-item.pushed {
+      border-color: var(--green);
+      animation: flashGreen 0.4s ease;
+    }
+
+    .stack-item.popped-slot {
+      border-color: var(--red);
+      opacity: 0.4;
+    }
+
+    @keyframes flashGreen {
+      0%   { background: #1a2e1a; border-color: var(--green); }
+      100% { background: var(--surface); }
+    }
+
+    .top-label {
+      position: absolute;
+      right: 4px;
+      top: 2px;
+      font-size: 8px;
+      color: var(--accent);
+      opacity: 0.7;
+    }
+
+    .stack-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    /* ── RIGHT: CONTROLS ── */
+    .control-panel {
+      width: 200px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 14px;
+      gap: 10px;
+      background: var(--surface);
+    }
+
+    .progress-label {
+      font-size: 11px;
+      color: var(--dim);
+      text-align: center;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.15s;
+    }
+
+    .divider { height: 1px; background: var(--border); margin: 2px 0; }
+
+    .ctrl-btn {
+      width: 100%;
+      padding: 11px;
+      background: transparent;
+      border: 1px solid var(--muted);
+      color: var(--text);
+      font-family: 'Geist Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .ctrl-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .ctrl-btn:disabled { opacity: 0.25; cursor: default; }
+    .ctrl-btn.danger:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+
+    /* ── DETAIL BOX ── */
+    .detail-box {
+      flex: 1;
+      border: 1px solid var(--border);
+      padding: 12px;
+      font-size: 11px;
+      line-height: 1.8;
+      color: var(--dim);
+      overflow-y: auto;
+    }
+
+    .detail-op {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .detail-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .detail-val { color: var(--text); text-align: right; }
+
+    .detail-doc {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .empty-state .big {
+      font-family: 'Geist Mono', monospace;
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--border);
+      letter-spacing: -2px;
+    }
+
+    .empty-state p { font-size: 12px; color: var(--dim); }
+    .empty-state code {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface);
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── KEYBOARD HINT ── */
+    .kbd-hint {
+      font-size: 10px;
+      color: var(--muted);
+      text-align: center;
+      padding-top: 6px;
+      border-top: 1px solid var(--border);
+    }
+
+    kbd {
+      background: var(--border);
+      color: var(--text);
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">marselo <span>// trace viewer</span></div>
+  <div class="header-right">
+    <span class="file-info" id="file-info"></span>
+    <button class="load-btn" onclick="document.getElementById('file-input').click()">
+      ▲ load .trace.json
+    </button>
+    <input type="file" id="file-input" accept=".json" />
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: opcode trace -->
+  <div class="opcode-panel">
+    <div class="panel-header">
+      <span>execution trace</span>
+      <span id="section-indicator"></span>
+    </div>
+    <div class="opcode-list" id="opcode-list">
+      <div class="empty-state">
+        <div class="big">.trace</div>
+        <p>generate a trace file first:</p>
+        <code>npm run marselo mrs/file.mrs -- --trace</code>
+        <p style="margin-top:4px; color: var(--muted); font-size:11px">then load the .trace.json here</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MIDDLE: stack -->
+  <div class="stack-panel">
+    <div class="panel-header">
+      <span>stack</span>
+      <span id="stack-depth">depth: 0</span>
+    </div>
+    <div class="stack-list" id="stack-list">
+      <div class="stack-empty" id="stack-empty">empty</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: controls + detail -->
+  <div class="control-panel">
+    <div class="progress-label" id="progress-label">— / —</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+    <div class="divider"></div>
+
+    <button class="ctrl-btn" id="btn-prev" onclick="navigate(-1)" disabled>← PREV</button>
+    <button class="ctrl-btn" id="btn-next" onclick="navigate(1)" disabled>NEXT →</button>
+
+    <div class="divider"></div>
+
+    <button class="ctrl-btn danger" id="btn-reset" onclick="reset()" disabled>⟲ RESET</button>
+
+    <div class="divider"></div>
+
+    <div class="detail-box" id="detail-box">
+      <span style="color: var(--muted); font-size:11px">load a trace to begin</span>
+    </div>
+
+    <div class="kbd-hint">
+      <kbd>←</kbd> prev &nbsp; <kbd>→</kbd> next &nbsp; <kbd>R</kbd> reset
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── STATE ──
+  let steps = [];
+  let current = 0;
+
+  const OPCODE_NAMES = {
+    0: 'PUSH', 1: 'PUSH_FN', 2: 'POP', 3: 'LOAD', 4: 'STORE',
+    5: 'ADD', 6: 'SUB', 7: 'MUL', 8: 'DIV', 9: 'MOD',
+    10: 'EQ', 11: 'NEQ', 12: 'LT', 13: 'GT', 14: 'LTE', 15: 'GTE',
+    16: 'AND', 17: 'OR', 18: 'NOT', 19: 'NULLISH',
+    20: 'JUMP', 21: 'JUMP_IF_FALSE',
+    22: 'CALL', 23: 'RETURN',
+    24: 'BUILD_ARRAY', 25: 'GET_INDEX', 26: 'SET_INDEX',
+    27: 'BUILD_MAP', 28: 'GET_PROPERTY', 29: 'SET_PROPERTY'
+  };
+
+  const OP_DOCS = {
+    PUSH: 'Push a literal value onto the stack.',
+    PUSH_FN: 'Push a function object (closure) onto the stack.',
+    POP: 'Discard the top value from the stack.',
+    LOAD: 'Read a variable from scope and push its value.',
+    STORE: 'Pop the top value and write it to a variable in scope.',
+    ADD: 'Pop two values, push their sum.',
+    SUB: 'Pop two values, push a − b.',
+    MUL: 'Pop two values, push their product.',
+    DIV: 'Pop two values, push a / b.',
+    MOD: 'Pop two values, push a % b.',
+    EQ: 'Pop two values, push true if equal.',
+    NEQ: 'Pop two values, push true if not equal.',
+    LT: 'Pop two values, push true if a < b.',
+    GT: 'Pop two values, push true if a > b.',
+    LTE: 'Pop two values, push true if a ≤ b.',
+    GTE: 'Pop two values, push true if a ≥ b.',
+    AND: 'Pop two values, push a && b.',
+    OR: 'Pop two values, push a || b.',
+    NOT: 'Pop one value, push its logical negation.',
+    NULLISH: 'Pop two values, push a ?? b.',
+    JUMP: 'Unconditionally jump to a target index.',
+    JUMP_IF_FALSE: 'Pop a value; jump to target if falsy.',
+    CALL: 'Call a function with N arguments from the stack.',
+    RETURN: 'Pop return value, exit current frame, push result.',
+    BUILD_ARRAY: 'Pop N values and build an array.',
+    GET_INDEX: 'Pop index and object, push object[index].',
+    SET_INDEX: 'Pop value, index, object; set object[index] = value.',
+    BUILD_MAP: 'Pop N key/value pairs and build a map.',
+  };
+
+  function opName(op) {
+    return OPCODE_NAMES[op] ?? `OP_${op}`;
+  }
+
+  function formatOperand(inst) {
+    const op = inst.operand;
+    if (op === undefined || op === null) return '';
+    if (typeof op === 'object') {
+      if (op.name !== undefined && op.arity !== undefined) return `${op.name} (${op.arity} args)`;
+      if (op.parameters) return `<fn> (${op.parameters.join(', ')})`;
+      return JSON.stringify(op).slice(0, 40);
+    }
+    return String(op);
+  }
+
+  function formatValue(v) {
+    if (v === null) return 'null';
+    if (v === undefined) return 'undefined';
+    if (typeof v === 'string') return `"${v.slice(0, 20)}${v.length > 20 ? '…' : ''}"`;
+    if (Array.isArray(v)) return `[…] (${v.length})`;
+    if (typeof v === 'object' && v.parameters) return '<fn>';
+    if (typeof v === 'object') return '{…}';
+    return String(v);
+  }
+
+  // ── FILE LOAD ──
+  document.getElementById('file-input').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        steps = JSON.parse(ev.target.result);
+        current = 0;
+        document.getElementById('file-info').textContent = file.name;
+        render();
+      } catch {
+        alert('Invalid trace JSON file.');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // ── RENDER ──
+  function render() {
+    renderList();
+    renderStack();
+    renderDetail();
+    updateControls();
+  }
+
+  function renderList() {
+    const list = document.getElementById('opcode-list');
+    list.innerHTML = '';
+
+    steps.forEach((step, i) => {
+      const name = opName(step.instruction.op);
+      const item = document.createElement('div');
+      item.className = 'opcode-item' + (i === current ? ' current' : '');
+      item.id = `op-${i}`;
+      item.onclick = () => { current = i; render(); };
+
+      const badge = document.createElement('span');
+      badge.className = 'op-section-badge';
+      badge.textContent = step.section;
+
+      const idx = document.createElement('span');
+      idx.className = 'op-idx';
+      idx.textContent = String(step.ip).padStart(3, '0');
+
+      const opEl = document.createElement('span');
+      opEl.className = `op-name op-${name}`;
+      opEl.textContent = name;
+
+      const operandEl = document.createElement('span');
+      operandEl.className = 'op-operand';
+      operandEl.textContent = formatOperand(step.instruction);
+
+      item.appendChild(badge);
+      item.appendChild(idx);
+      item.appendChild(opEl);
+      item.appendChild(operandEl);
+      list.appendChild(item);
+    });
+
+    const currentEl = document.getElementById(`op-${current}`);
+    if (currentEl) currentEl.scrollIntoView({ block: 'center' });
+
+    const step = steps[current];
+    document.getElementById('section-indicator').textContent = step ? `@ ${step.section}` : '';
+  }
+
+  function renderStack() {
+    const list = document.getElementById('stack-list');
+    const emptyEl = document.getElementById('stack-empty');
+    const step = steps[current];
+    if (!step) return;
+
+    const after = step.stackAfter;
+    const before = step.stackBefore;
+
+    // what changed
+    const pushed = after.length > before.length;
+    const popped = after.length < before.length;
+    const newCount = after.length - before.length;
+
+    document.getElementById('stack-depth').textContent = `depth: ${after.length}`;
+
+    list.innerHTML = '';
+
+    if (after.length === 0) {
+      list.appendChild(emptyEl);
+      emptyEl.style.display = 'flex';
+      return;
+    }
+
+    after.forEach((val, i) => {
+      const isTop = i === after.length - 1;
+      const isNew = pushed && i >= before.length;
+
+      const item = document.createElement('div');
+      item.className = 'stack-item' +
+        (isTop ? ' top' : '') +
+        (isNew ? ' pushed' : '');
+
+      if (isTop) {
+        const label = document.createElement('span');
+        label.className = 'top-label';
+        label.textContent = 'top';
+        item.appendChild(label);
+      }
+
+      item.appendChild(document.createTextNode(formatValue(val)));
+      list.appendChild(item);
+    });
+  }
+
+  function renderDetail() {
+    const box = document.getElementById('detail-box');
+    const step = steps[current];
+    if (!step) return;
+
+    const name = opName(step.instruction.op);
+    const operand = formatOperand(step.instruction);
+    const diff = step.stackAfter.length - step.stackBefore.length;
+    const diffStr = diff > 0 ? `+${diff}` : String(diff);
+    const diffColor = diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--dim)';
+
+    box.innerHTML = `
+      <span class="detail-op op-${name}">${name}</span>
+      <div class="detail-line">
+        <span>section</span>
+        <span class="detail-val">${step.section}</span>
+      </div>
+      <div class="detail-line">
+        <span>ip</span>
+        <span class="detail-val">${step.ip}</span>
+      </div>
+      ${operand ? `
+      <div class="detail-line">
+        <span>operand</span>
+        <span class="detail-val">${operand}</span>
+      </div>` : ''}
+      <div class="detail-line">
+        <span>stack Δ</span>
+        <span class="detail-val" style="color:${diffColor}">${diffStr}</span>
+      </div>
+      <div class="detail-line">
+        <span>stack depth</span>
+        <span class="detail-val">${step.stackAfter.length}</span>
+      </div>
+      <div class="detail-doc">${OP_DOCS[name] ?? ''}</div>
+    `;
+  }
+
+  function updateControls() {
+    const total = steps.length;
+    document.getElementById('progress-label').textContent =
+      total ? `${current + 1} / ${total}` : '— / —';
+    document.getElementById('progress-fill').style.width =
+      total ? `${((current + 1) / total) * 100}%` : '0%';
+    document.getElementById('btn-prev').disabled = current === 0;
+    document.getElementById('btn-next').disabled = current >= total - 1;
+    document.getElementById('btn-reset').disabled = !total;
+  }
+
+  // ── NAVIGATION ──
+  function navigate(dir) {
+    if (!steps.length) return;
+    current = Math.max(0, Math.min(steps.length - 1, current + dir));
+    render();
+  }
+
+  function reset() {
+    current = 0;
+    render();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (!steps.length) return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); navigate(-1); }
+    if (e.key === 'r' || e.key === 'R') reset();
+  });
+</script>
+</body>
+</html>
