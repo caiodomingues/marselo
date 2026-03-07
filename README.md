@@ -12,6 +12,7 @@ Creating a programming language sounds fun and challenging, so I decided to try 
 - Bytecode visualizer at `/tools/visualizer.html` (open in browser and paste bytecode to see the instructions in a readable format).
 - REPL (Read-Eval-Print Loop) for interactive coding and testing snippets.
 - Bytecode serialization for saving compiled code to disk and loading it later, improving startup time, with `--compile`
+- Tracer for debugging: `--trace` flag to print executed instructions and their operands during runtime, helping to understand the execution flow and identify issues. (Tiny and basic UI at `/tools/index.html`)
 --
 
 Also, simple tooling and w/e:
